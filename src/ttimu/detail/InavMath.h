@@ -6,7 +6,10 @@
 #include <cstring>
 
 namespace ttimu { namespace detail {
+#ifndef M_PIf
+// GNU libc may already provide the same float constant as a macro.
 constexpr float M_PIf = 3.14159265358979323846f;
+#endif
 constexpr float Gravity = 980.665f;
 constexpr unsigned MAX_KALMAN_WINDOW_SIZE = 64;
 constexpr float VARIANCE_SCALE = 0.67f;
