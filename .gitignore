@@ -1,0 +1,16 @@
+research/
+Idea.md
+build/
+.pio/
+.cache/
+.vscode/
+.venv/
+__pycache__/
+*.pyc
+*.zip
+*.bin
+*.elf
+*.map
+node_modules/
+test-results/
+.DS_Store

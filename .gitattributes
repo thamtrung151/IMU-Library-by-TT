@@ -1,0 +1,3 @@
+* text=auto eol=lf
+vendor/inav-9.0.1/** -text
+*.png binary

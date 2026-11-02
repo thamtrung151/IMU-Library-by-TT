@@ -1,0 +1,10 @@
+{
+  "name": "IMU-Library-by-TT",
+  "version": "0.1.0",
+  "description": "Portable INAV 9-derived six-axis IMU library for ESP32 and STM32",
+  "license": "GPL-3.0-or-later",
+  "frameworks": ["arduino"],
+  "platforms": ["espressif32", "ststm32"],
+  "build": {"srcDir": "src", "includeDir": "src"},
+  "repository": {"type": "git", "url": "https://github.com/thamtrung151/IMU-Library-by-TT.git"}
+}

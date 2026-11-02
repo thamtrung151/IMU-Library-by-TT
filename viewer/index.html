@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#0e151f"><title>IMU Library by TT — Monitor</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='10' fill='%232d81ff'/%3E%3Cpath d='M8 13h24M14 13v16M26 13v16' stroke='white' stroke-width='4'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="topbar"><a class="brand" href="./" aria-label="IMU Library by TT"><span class="brand-mark">TT</span><span>IMU Library <b>by TT</b><small>HARDWARE IN. GOOD DATA OUT.</small></span></a><div class="top-right"><span class="version">v0.1.0</span><a href="https://github.com/thamtrung151/IMU-Library-by-TT" target="_blank" rel="noreferrer">GitHub ↗</a></div></header>
+<main>
+  <aside class="sidebar">
+    <div class="section-label">THIẾT BỊ</div>
+    <h1>Dữ liệu thật.<br>Nhìn rõ từng trục.</h1>
+    <p class="intro">Nối bo qua USB, giữ yên để hiệu chuẩn, rồi xem dữ liệu IMU trực tiếp.</p>
+    <label for="baud">Tốc độ serial</label><select id="baud"><option>921600</option><option>460800</option><option>230400</option><option>115200</option></select>
+    <button id="connect" class="primary"><span>↔</span> Kết nối USB</button>
+    <div id="connectionHint" class="hint">Chrome / Edge trên máy tính · Đóng Serial Monitor trước khi kết nối.</div>
+    <div class="separator"></div>
+    <div class="section-label">CÔNG CỤ</div>
+    <button id="calibrate" class="tool" disabled><span>◎</span> Hiệu chuẩn lại</button>
+    <button id="zero" class="tool" disabled><span>⌖</span> Đặt mốc yaw</button>
+    <button id="import" class="tool"><span>↥</span> Mở dữ liệu CSV</button><input type="file" id="file" accept=".csv,text/csv" hidden>
+    <button id="demo" class="tool"><span>▷</span> Xem thử giao diện</button>
+    <div class="sidebar-note"><span class="note-icon">i</span><p>Yaw là góc tương đối. Giữ bo yên khoảng 2 giây khi bật nguồn hoặc hiệu chuẩn lại.</p></div>
+    <div class="sidebar-footer"><span class="status-dot"></span> Xử lý trên bo. Hiển thị trên máy.</div>
+  </aside>
+  <section class="workspace">
+    <div class="workspace-heading"><div><div class="section-label">IMU MONITOR</div><h2>Tổng quan chuyển động</h2></div><div id="sourceBadge" class="badge">Chưa có dữ liệu</div></div>
+    <div id="notice" class="notice" role="status" aria-live="polite"><span class="notice-dot"></span><span id="noticeText">Sẵn sàng kết nối. Hoặc mở CSV để xem dữ liệu đã ghi.</span></div>
+    <div class="readings">
+      <article class="reading roll"><div><span class="channel-dot"></span> ROLL <small>nghiêng ngang</small></div><strong id="roll">—</strong><span class="unit">độ</span><div class="reading-line"></div></article>
+      <article class="reading pitch"><div><span class="channel-dot"></span> PITCH <small>chúi / ngẩng</small></div><strong id="pitch">—</strong><span class="unit">độ</span><div class="reading-line"></div></article>
+      <article class="reading yaw"><div><span class="channel-dot"></span> YAW <small>hướng tương đối</small></div><strong id="yaw">—</strong><span class="unit">độ</span><div class="reading-line"></div></article>
+    </div>
+    <article class="chart-card">
+      <div class="chart-toolbar"><div class="tabs" role="tablist" aria-label="Dữ liệu đồ thị"><button class="tab active" data-mode="attitude" role="tab" aria-selected="true">Góc</button><button class="tab" data-mode="gyro" role="tab" aria-selected="false">Gyroscope</button><button class="tab" data-mode="accel" role="tab" aria-selected="false">Accelerometer</button></div><div class="chart-actions"><label class="sr-only" for="window">Cửa sổ thời gian</label><select id="window"><option value="5">5 giây</option><option value="10" selected>10 giây</option><option value="30">30 giây</option></select><button id="pause" class="icon-button" title="Tạm dừng đồ thị" aria-label="Tạm dừng đồ thị">Ⅱ</button><button id="clear" class="icon-button" title="Xóa đồ thị" aria-label="Xóa đồ thị">↺</button></div></div>
+      <div class="chart-meta"><span id="chartUnit">Góc (°) · yaw nối liên tục qua 360°</span><div id="legend" class="legend"></div></div>
+      <div class="canvas-wrap"><canvas id="plot" role="img" aria-label="Đồ thị dữ liệu IMU theo thời gian"></canvas><div id="empty" class="empty-state"><div class="wave-icon">∿</div><h3>Chờ chuyển động đầu tiên</h3><p>Kết nối bo để xem đường tín hiệu.<br>Dữ liệu được giữ riêng trên máy của bạn.</p><button id="emptyDemo">Thử với dữ liệu mô phỏng ↗</button></div></div>
+      <div class="chart-footer"><span><i id="liveDot"></i> <span id="streamLabel">CHƯA KẾT NỐI</span></span><span id="sampleCount">0 mẫu</span></div>
+    </article>
+    <div class="bottom-grid">
+      <article class="health-card"><div class="card-title">TÌNH TRẠNG TÍN HIỆU <span>●</span></div><div class="health-grid"><div><small>Tần số nhận</small><strong id="frequency">— <em>Hz</em></strong></div><div><small>Nhiệt độ chip</small><strong id="temperature">— <em>°C</em></strong></div><div><small>Chu kỳ xử lý</small><strong id="dt">— <em>µs</em></strong></div><div><small>Khoảng mất mẫu</small><strong id="gaps">—</strong></div></div><div class="calib-row"><span id="calibLabel">Hiệu chuẩn</span><div class="progress"><i id="calibProgress"></i></div><span id="calibPercent">—</span></div></article>
+      <article class="capture-card"><div class="card-title">GHI LẠI ĐỂ ĐỐI CHIẾU <span>↧</span></div><h3>Mỗi lần chạy,<br>một bản dữ liệu.</h3><p>Lưu góc, gyro, acc và nhiệt độ thành CSV để xem lại hoặc xử lý sau.</p><button id="record" class="secondary" disabled>● Bắt đầu ghi CSV</button><span id="recordInfo" class="hint">Ghi từ lúc bạn nhấn nút.</span></article>
+    </div>
+    <footer class="workspace-footer"><span>IMU Library by TT</span><span>ESP32 / STM32 · ICM426xx / MPU6xxx</span></footer>
+  </section>
+</main>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+<script type="module" src="app.mjs"></script>
+</body></html>

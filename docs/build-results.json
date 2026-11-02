@@ -1,0 +1,41 @@
+{
+  "date": "2026-11-03",
+  "release": "0.1.0",
+  "hardware_runtime_tested": false,
+  "cpu_or_drift_benchmarked": false,
+  "host_cpp11": "GCC 15.2.0 MinGW Windows",
+  "host_imu_instance_size_bytes": 2408,
+  "inav_reference_steps": 100000,
+  "max_host_quaternion_component_distance": 0,
+  "viewer_parser_tests": 6,
+  "embedded_builds": [
+    {
+      "environment": "esp32s3",
+      "status": "compiled_and_linked",
+      "static_ram_bytes": 21660,
+      "flash_bytes": 279749,
+      "scope": "entire_example_including_Arduino_core_and_USB"
+    },
+    {
+      "environment": "stm32f411",
+      "status": "compiled_and_linked",
+      "static_ram_bytes": 7912,
+      "flash_bytes": 41292,
+      "scope": "entire_example_including_Arduino_core_and_USB"
+    },
+    {
+      "environment": "esp32s3_i2c",
+      "status": "compiled_and_linked",
+      "static_ram_bytes": 21492,
+      "flash_bytes": 281629,
+      "scope": "entire_example_including_Arduino_core_and_USB"
+    },
+    {
+      "environment": "stm32f411_i2c",
+      "status": "compiled_and_linked",
+      "static_ram_bytes": 7916,
+      "flash_bytes": 47296,
+      "scope": "entire_example_including_Arduino_core_and_USB"
+    }
+  ]
+}

@@ -1,0 +1,59 @@
+{
+  "repository": "https://github.com/iNavFlight/inav",
+  "tag": "9.0.1",
+  "commit": "d44f2cf6e60cc9318b10551291b596370b5c957b",
+  "files": [
+    {
+      "file": "flight/imu.c",
+      "sha256": "3b6686d3c7360812988a7a416a713f24d2018d453d95e92dcc85c71e08e4b02a"
+    },
+    {
+      "file": "common/maths.c",
+      "sha256": "ecbcfea729fe59693dc6a89dde76856a84b896d2c27e2595fcbf5d46de9b627b"
+    },
+    {
+      "file": "common/maths.h",
+      "sha256": "3385c8bbc00ebbff40404b56c73530d2e1bb7f1f549c59dadb676e72f78fe1d4"
+    },
+    {
+      "file": "common/vector.h",
+      "sha256": "c14e94e5a655f4739c872a9f13860f2855aeb13eab63436c42baaa62c8c22549"
+    },
+    {
+      "file": "common/quaternion.h",
+      "sha256": "64292cd87b16d865e970aeff8a7a8af5759d997e0698d38ea0368b4f5c289dd6"
+    },
+    {
+      "file": "common/filter.c",
+      "sha256": "1db4e157f2b1ea4eb158bf3f8f96802a0d5adebec35241787bec9b3d113f5b1b"
+    },
+    {
+      "file": "common/filter.h",
+      "sha256": "d748e881d379c7215840f6663684ba30d7a01c42baaac328e206a10f78afcc4a"
+    },
+    {
+      "file": "common/calibration.c",
+      "sha256": "700ec2f9574bd963375a98b71063bd768c245c2b30412bec328423bfcaad7d12"
+    },
+    {
+      "file": "flight/kalman.c",
+      "sha256": "f1dd0281dfd67e153c2c0a8f8be39f9f80e72d16818fb7ee02467a73e926e2fc"
+    },
+    {
+      "file": "flight/kalman.h",
+      "sha256": "ea73e3f941b2d21d05064ea44cef587cc329e48d3055a370a88a625acd064d3c"
+    },
+    {
+      "file": "drivers/accgyro/accgyro_icm42605.c",
+      "sha256": "8642881d0b1d695f04ea1d9ee87b910311808a99b8b6801f9f80450027f2070b"
+    },
+    {
+      "file": "drivers/accgyro/accgyro_mpu6500.c",
+      "sha256": "2f884d56642bfec57822e7feb9680adce6878b5c76c93f79d4afc908f2e4e055"
+    },
+    {
+      "file": "fc/settings.yaml",
+      "sha256": "9d0e850ef492d130e4b1c37e8a7fb7a4b16d1d621cf0ebb7709522b5708f8e03"
+    }
+  ]
+}
