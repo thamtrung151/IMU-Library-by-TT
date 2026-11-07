@@ -42,7 +42,7 @@ bool IMU::initialize(Sensor s,const Config& c) {
     sensor_=s; config_=c; calibration_=Calibration(); calibration_.sensor=s;
     data_=Data(); diagnostics_=Diagnostics(); core_.reset();
     elapsedUs_=lastFusionUs_=calibrationStartUs_=0;
-    lastRawTimestamp_=lastPoll_=0; haveTimestamp_=haveFusion_=gyroCalibrated_=false; armed_=false;
+    lastRawTimestamp_=lastPoll_=0; haveTimestamp_=haveFusion_=gyroCalibrated_=attitudeInitialized_=false; armed_=false;
     state_=State::Calibrating; resetFilters(); startCalibration();
     if(!c.startupCalibration) state_=State::WaitingForCalibration;
     error_=Error::None; return true;
@@ -154,7 +154,8 @@ void IMU::startCalibration() {
     calibrationCount_=0; calibrationStartUs_=elapsedUs_; gyroCalibrated_=false;
     for(unsigned a=0;a<3;++a) {gyroSums_[a]=0;devClear(&gyroVariance_[a]);calibration_.gyroBiasCounts[a]=0;}
     state_=State::Calibrating; data_.ready=false; diagnostics_.calibrationProgress=0;
-    core_.reset(); resetFilters(); haveFusion_=false;
+    core_.reset(); resetFilters(); haveFusion_=false; attitudeInitialized_=false;
+    diagnostics_.attitudeInitialized=false;diagnostics_.gyroDriftCorrection=Vector3();
 }
 
 bool IMU::calibrateGyro(const RawSample& sample,uint64_t now) {
@@ -229,11 +230,19 @@ bool IMU::feed(const RawSample& raw) {
         acc.v[a]*=Gravity;
     }
     const uint32_t previousRecoveries=core_.recoveries;
-    core_.step(gyro,acc,dt,static_cast<uint32_t>(elapsedUs_/1000),armed_);
+    // Do not build AHRS integral error against an invented level pose during gyro calibration.
+    // Seed tilt from the settled accelerometer once the stationary gyro window has passed.
+    if(gyroCalibrated_ && !attitudeInitialized_) {
+        attitudeInitialized_=core_.alignToAcceleration(acc);
+        state_=attitudeInitialized_?State::Ready:State::WaitingForAttitude;
+    }
+    if(attitudeInitialized_) core_.step(gyro,acc,dt,static_cast<uint32_t>(elapsedUs_/1000),armed_);
     recoveredLastUpdate_=core_.recoveries!=previousRecoveries;
     if(recoveredLastUpdate_)error_=Error::InvalidSample;
     diagnostics_.lastDtUs=dt*1e6f; diagnostics_.accelWeight=core_.lastAccWeight;
     diagnostics_.quaternionRecoveries=core_.recoveries; ++diagnostics_.updates;
+    diagnostics_.attitudeInitialized=attitudeInitialized_;
+    diagnostics_.gyroDriftCorrection=Vector3(core_.vGyroDriftEstimate.x,core_.vGyroDriftEstimate.y,core_.vGyroDriftEstimate.z);
     publish(gyro,acc,raw,elapsedUs_);
     return true;
 }
@@ -247,11 +256,11 @@ void IMU::publish(const fpVector3_t& g,const fpVector3_t& a,const RawSample& raw
     data_.gyro.x=g.x;data_.gyro.y=g.y;data_.gyro.z=g.z;
     data_.accel.x=a.x*0.01f;data_.accel.y=a.y*0.01f;data_.accel.z=a.z*0.01f;
     data_.temperatureC=raw.temperatureC;data_.timestampUs=time;data_.sequence=diagnostics_.updates;
-    data_.ready=gyroCalibrated_ && std::isfinite(data_.yaw) && !recoveredLastUpdate_;
+    data_.ready=gyroCalibrated_ && attitudeInitialized_ && std::isfinite(data_.yaw) && !recoveredLastUpdate_;
     data_.absoluteHeadingValid=false;
 }
 
-void IMU::zeroYaw() {core_.zeroYaw();data_.yaw=0;data_.quaternion={core_.orientation.q0,core_.orientation.q1,core_.orientation.q2,core_.orientation.q3};}
+void IMU::zeroYaw() {if(!attitudeInitialized_)return;core_.zeroYaw();data_.yaw=0;data_.quaternion={core_.orientation.q0,core_.orientation.q1,core_.orientation.q2,core_.orientation.q3};}
 void IMU::setRateSetpoint(const Vector3& v) {
     if(std::isfinite(v.x)&&std::isfinite(v.y)&&std::isfinite(v.z)) {kalman_[0].setpoint=v.x;kalman_[1].setpoint=v.y;kalman_[2].setpoint=v.z;}
 }
@@ -260,7 +269,7 @@ bool IMU::setCalibration(const Calibration& c) {
     for(unsigned a=0;a<3;++a) if(!std::isfinite(c.gyroBiasCounts[a]) || std::fabs(c.gyroBiasCounts[a])>32767 ||
         !std::isfinite(c.accelOffsetG[a]) || std::fabs(c.accelOffsetG[a])>2 || !std::isfinite(c.accelScale[a]) || c.accelScale[a]<0.5f || c.accelScale[a]>2) {error_=Error::CalibrationMismatch;return false;}
     calibration_=c;
-    if(!config_.startupCalibration) {gyroCalibrated_=true;state_=State::Ready;diagnostics_.calibrationProgress=1;}
+    if(!config_.startupCalibration) {gyroCalibrated_=true;state_=attitudeInitialized_?State::Ready:State::WaitingForAttitude;diagnostics_.calibrationProgress=1;}
     error_=Error::None;return true;
 }
 const char* IMU::sensorName(Sensor s) {

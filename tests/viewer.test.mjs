@@ -16,7 +16,9 @@ test('invalid finite fields, incomplete rows and invalid readiness do not become
 test('reconnect without header accepts the full example protocol, and final CSV line needs no newline', () => {
   const samples = []; const p = new TelemetryParser(s => samples.push(s));
   const row = [1234,1,2,3,0,0,0,0,0,9.8,25,1,1000,0,1,0,0].join(',');
-  p.push(row); p.finish(); assert.equal(samples.length, 1); assert.equal(samples[0].az, 9.8); assert.equal(csvRow(samples[0]), row);
+  p.push(row); p.finish(); assert.equal(samples.length, 1); assert.equal(samples[0].az, 9.8);
+  assert.equal(csvRow(samples[0]).split(',').slice(0,17).join(','), row);
+  assert.ok(csvRow(samples[0]).split(',').slice(17).every(v=>v===''));
 });
 test('yaw unwraps through 360 and the ring is bounded in chronological order', () => {
   const b = new TraceBuffer(3);
@@ -34,5 +36,13 @@ test('CSV header order is honored and a repeated header can change optional fiel
   p.push('yaw,t_us,roll,pitch\n'); // Header must begin with t_us, as documented.
   p.push('t_us,yaw,pitch,roll\n1000,90,2,-5\nt_us,roll,pitch,yaw,temp\n2000,1,2,3,\n');
   assert.equal(samples.length,2);assert.equal(samples[0].roll,-5);assert.equal(samples[1].temp,null);
-  assert.equal(COLUMNS.length,17);
+});
+
+test('new firmware diagnostic columns survive a headerless USB reconnect and CSV round trip', () => {
+  const samples=[];const p=new TelemetryParser(s=>samples.push(s));
+  const values=[1234,1,2,3,0,0,0,0,0,9.8,25,1,1000,0,1,0,0,1,0,0,0,0.001,-0.002,0.003,0.99];
+  const row=values.join(',');p.push(row+'\n');
+  assert.equal(samples.length,1);assert.equal(samples[0].iz,0.003);assert.equal(samples[0].qw,1);
+  assert.equal(samples[0].acc_weight,0.99);assert.equal(csvRow(samples[0]),row);
+  p.push(COLUMNS.join(',')+'\n'+row+'\n');assert.equal(samples.length,2);
 });

@@ -5,12 +5,12 @@
 #include "ttimu/detail/InavCore.h"
 
 namespace ttimu {
-constexpr const char* Version = "0.1.1";
+constexpr const char* Version = "0.1.2";
 struct Vector3 { float x,y,z; Vector3(float a=0,float b=0,float c=0):x(a),y(b),z(c){} };
 struct Quaternion { float w,x,y,z; Quaternion(float a=1,float b=0,float c=0,float d=0):w(a),x(b),y(c),z(d){} };
 enum class Sensor : uint8_t { Auto, MPU6050, MPU6500, ICM42605, ICM42688 };
 enum class Error : uint8_t { None, NotStarted, Bus, NotFound, WrongSensor, InvalidConfig, InvalidSample, TimingGap, CalibrationMismatch };
-enum class State : uint8_t { Stopped, Calibrating, Ready, WaitingForCalibration, Error };
+enum class State : uint8_t { Stopped, Calibrating, Ready, WaitingForCalibration, Error, WaitingForAttitude };
 
 // Implement this interface to use STM32 HAL, ESP-IDF or any other platform.
 // A single task must own the bus and IMU instance. No heap is used by the library.
@@ -75,6 +75,8 @@ struct Diagnostics {
     uint32_t lateSamples = 0, timingGaps = 0, rejectedSamples = 0;
     uint32_t calibrationRetries = 0, quaternionRecoveries = 0;
     float calibrationProgress = 0, lastDtUs = 0, accelWeight = 0;
+    Vector3 gyroDriftCorrection; // AHRS integral feedback in rad/s, separate from data().gyro.
+    bool attitudeInitialized = false;
 };
 
 class IMU {
@@ -124,5 +126,6 @@ private:
     uint32_t calibrationCount_ = 0, lastRawTimestamp_ = 0, lastPoll_ = 0;
     uint64_t elapsedUs_ = 0, lastFusionUs_ = 0, calibrationStartUs_ = 0;
     bool haveTimestamp_ = false, haveFusion_ = false, gyroCalibrated_ = false, armed_ = false, recoveredLastUpdate_ = false;
+    bool attitudeInitialized_ = false;
 };
 }

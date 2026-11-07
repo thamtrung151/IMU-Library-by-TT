@@ -16,6 +16,9 @@ under **GNU GPL version 3 or, at your option, any later version**. See `LICENSE`
 Adaptations were made on **2026-11-03** for this initial portable release.
 On **2026-11-07**, internal square/radians helper names were prefixed for Arduino
 macro compatibility; their formulas and the vendored originals are unchanged.
+On **2026-11-08**, a separate gravity-based startup policy was added to the
+portable wrapper after stationary hardware logs exposed invalid initial attitude.
+The extracted steady-state INAV update remains unchanged.
 
 | Upstream files | Portable implementation |
 |---|---|

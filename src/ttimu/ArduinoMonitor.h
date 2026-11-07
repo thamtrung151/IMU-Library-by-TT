@@ -9,7 +9,7 @@ namespace ttimu {
 template<class SerialPort> class ArduinoMonitor {
     class Row : public Print {
     public:
-        char bytes[256];size_t length=0;bool overflow=false;
+        char bytes[512];size_t length=0;bool overflow=false;
         size_t write(uint8_t byte) override {
             if(length>=sizeof(bytes)){overflow=true;return 0;}
             bytes[length++]=static_cast<char>(byte);return 1;
@@ -30,7 +30,7 @@ public:
         serial_.print("# IMU Library by TT v");serial_.print(Version);
         serial_.print(" / ");serial_.println(IMU::sensorName(imu_.sensor()));
         serial_.println("# Keep the IMU still for startup calibration (about 2 seconds).");
-        serial_.println("t_us,roll,pitch,yaw,gx,gy,gz,ax,ay,az,temp,ready,dt_us,gaps,calib,retries,late");
+        serial_.println("t_us,roll,pitch,yaw,gx,gy,gz,ax,ay,az,temp,ready,dt_us,gaps,calib,retries,late,qw,qx,qy,qz,ix,iy,iz,acc_weight");
     }
     bool update(){
         if(offset_<row_.length){
@@ -59,7 +59,10 @@ public:
         row_.field(d.accel.x,4);row_.field(d.accel.y,4);row_.field(d.accel.z,4);
         row_.field(d.temperatureC,2);row_.fieldUnsigned(d.ready?1:0);
         row_.field(s.lastDtUs,0);row_.fieldUnsigned(s.timingGaps);
-        row_.field(s.calibrationProgress,3);row_.fieldUnsigned(s.calibrationRetries);row_.fieldUnsigned(s.lateSamples);row_.write('\n');
+        row_.field(s.calibrationProgress,3);row_.fieldUnsigned(s.calibrationRetries);row_.fieldUnsigned(s.lateSamples);
+        row_.field(d.quaternion.w,6);row_.field(d.quaternion.x,6);row_.field(d.quaternion.y,6);row_.field(d.quaternion.z,6);
+        row_.field(s.gyroDriftCorrection.x,7);row_.field(s.gyroDriftCorrection.y,7);row_.field(s.gyroDriftCorrection.z,7);
+        row_.field(s.accelWeight,4);row_.write('\n');
         if(row_.overflow)row_.clear();
         return updated;
     }

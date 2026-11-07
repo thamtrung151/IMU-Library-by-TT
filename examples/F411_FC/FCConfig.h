@@ -3,9 +3,10 @@
 #include <cstdint>
 
 namespace fc {
-// Starting alignment from INAV 9 MATEKF411TE: IMU_ICM42605_ALIGN CW180_DEG_FLIP.
-// This is NOT yet verified for your custom PCB, which needed manual INAV alignment.
-// Check flat-board accel Z near +9.8 m/s^2 and roll/pitch directions before use.
-// Preserve your INAV `diff all` before flashing; it may contain the needed rotation.
-constexpr int8_t Axes[3] = {1, -2, -3};
+// Custom PCB correction from Nov 7 logs: old Z was -g and roll/pitch were swapped.
+// Relative to the old {1,-2,-3}: new body axes = {old Y, old X, -old Z}.
+// This is a proper rotation (determinant +1), INAV CW270_DEG, not a left-handed swap.
+// Static logs cannot fix the remaining 180-degree heading ambiguity: verify signs
+// with a nose-up and right-side-down test. CW90_DEG {2,-1,3} is the other sign choice.
+constexpr int8_t Axes[3] = {-2, 1, 3};
 }

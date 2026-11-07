@@ -1,47 +1,47 @@
 {
-  "date": "2026-11-07",
-  "release": "0.1.1",
+  "date": "2026-11-08",
+  "release": "0.1.2",
   "hardware_runtime_tested": false,
   "cpu_or_drift_benchmarked": false,
   "host_cpp11": "GCC 15.2.0 MinGW Windows",
-  "host_imu_instance_size_bytes": 2408,
+  "host_imu_instance_size_bytes": 2424,
   "inav_reference_steps": 100000,
   "max_host_quaternion_component_distance": 0,
-  "viewer_parser_tests": 6,
+  "viewer_parser_tests": 7,
   "embedded_builds": [
     {
       "environment": "esp32s3",
       "status": "compiled_and_linked",
-      "static_ram_bytes": 21660,
-      "flash_bytes": 279749,
+      "static_ram_bytes": 21932,
+      "flash_bytes": 285369,
       "scope": "entire_example_including_Arduino_core_and_USB"
     },
     {
       "environment": "stm32f411",
       "status": "compiled_and_linked",
-      "static_ram_bytes": 7912,
-      "flash_bytes": 41292,
+      "static_ram_bytes": 8184,
+      "flash_bytes": 47040,
       "scope": "entire_example_including_Arduino_core_and_USB"
     },
     {
       "environment": "esp32s3_i2c",
       "status": "compiled_and_linked",
-      "static_ram_bytes": 21492,
-      "flash_bytes": 281629,
+      "static_ram_bytes": 21764,
+      "flash_bytes": 287253,
       "scope": "entire_example_including_Arduino_core_and_USB"
     },
     {
       "environment": "stm32f411_i2c",
       "status": "compiled_and_linked",
-      "static_ram_bytes": 7916,
-      "flash_bytes": 47296,
+      "static_ram_bytes": 8188,
+      "flash_bytes": 53052,
       "scope": "entire_example_including_Arduino_core_and_USB"
     },
     {
       "environment": "tt_f411_icm42605",
       "status": "compiled_and_linked",
-      "static_ram_bytes": 7920,
-      "flash_bytes": 41372,
+      "static_ram_bytes": 8192,
+      "flash_bytes": 47120,
       "scope": "entire_example_including_Arduino_core_and_USB"
     }
   ],
@@ -50,7 +50,8 @@
     "board": "esp32-s3-devkitc-1",
     "dependency": "local symlink",
     "include_order": "Arduino.h first",
-    "status": "compiled_and_linked"
+    "status": "compiled_and_linked",
+    "verified_release": "0.1.2"
   },
   "fc_profile": {
     "hse_hz": 8000000,
@@ -59,6 +60,8 @@
     "clock_symbol": "strong SystemClock_Config override verified in linked ELF",
     "spi": 2,
     "cs": "PC13",
-    "alignment": "CW180_DEG_FLIP starting value; custom PCB alignment not verified"
-  }
+    "alignment": "CW270_DEG {-2,1,3}; Z/swap correction from logs; X/Y signs still require motion check"
+  },
+  "startup_regression": "passed: six faces, inverted/tilted starts, late recalibration, readiness, FC axes",
+  "hardware_baseline_logs_analyzed": 2
 }

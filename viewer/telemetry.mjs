@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-export const COLUMNS = ['t_us','roll','pitch','yaw','gx','gy','gz','ax','ay','az','temp','ready','dt_us','gaps','calib','retries','late'];
+const LEGACY_COLUMNS = ['t_us','roll','pitch','yaw','gx','gy','gz','ax','ay','az','temp','ready','dt_us','gaps','calib','retries','late'];
+export const COLUMNS = [...LEGACY_COLUMNS,'qw','qx','qy','qz','ix','iy','iz','acc_weight'];
 const REQUIRED = ['t_us','roll','pitch','yaw'];
 
 export class TelemetryParser {
@@ -30,7 +31,7 @@ export class TelemetryParser {
       return;
     }
     // The example emits a header once; reconnects can begin in the middle of a stream.
-    const header = this.header ?? (fields.length === COLUMNS.length ? COLUMNS : null);
+    const header = this.header ?? (fields.length === COLUMNS.length ? COLUMNS : fields.length === LEGACY_COLUMNS.length ? LEGACY_COLUMNS : null);
     if (!header || fields.length !== header.length) { this.errors++; return; }
     const sample = {};
     for (let i = 0; i < header.length; i++) {

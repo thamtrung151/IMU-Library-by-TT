@@ -39,8 +39,13 @@ Mặc định: gyro anti-alias 250 Hz, gyro main PT1 60 Hz, acc biquad 15 Hz, gy
 - Quaternion Hamilton `(w,x,y,z)` giữ biểu diễn nội bộ INAV. Yaw Euler dùng dấu âm so với phép atan2 quaternion thông thường. Khi tích hợp NED/ENU hoặc robotics khác, xác nhận basis/sign trước.
 - Gyro `rad/s`, acc `m/s²` gồm trọng lực, nhiệt `°C`; timestamp `µs` tương đối từ sample đầu và mở rộng wrap `micros()` 32 bit.
 - Mặc định tự hiệu chuẩn gyro mỗi boot. Calibration của một chip không dùng lại cho chip khác dù cùng model.
-- `Calibration` cho phép nạp offset/gain acc đã đo. Công cụ tự hiệu chuẩn acc sáu tư thế chưa có trong v0.1.1; hệ số mặc định là offset 0, gain 1.
+- `ready()` chỉ true sau khi gyro đã hiệu chuẩn **và** tư thế ban đầu được dựng từ gia tốc hợp lệ (0,8–1,2 g). Khi chờ gravity, `state()` là `WaitingForAttitude`. Việc này không chứng minh bo đang đứng yên nếu có gia tốc ngoài; vẫn phải giữ yên lúc calib.
+- Sau hiệu chuẩn, khởi tạo roll/pitch theo gravity hiện tại, yaw về mốc tương đối 0; không ép tư thế nằm phẳng. `startCalibration()` thực hiện lại quá trình này, bỏ trạng thái tích phân cũ.
+- `diagnostics().gyroDriftCorrection` là hiệu chỉnh tích phân AHRS, đơn vị rad/s. `data().gyro` là gyro đã trừ bias/lọc, trước phần hiệu chỉnh này.
+- `Calibration` cho phép nạp offset/gain acc đã đo. Công cụ tự hiệu chuẩn acc sáu tư thế chưa có trong v0.1.2; hệ số mặc định là offset 0, gain 1.
 - Muốn dùng gyro bias đã lưu, đặt `startupCalibration=false`, gọi `begin()`, sau đó `setCalibration(saved)`. Cho tới khi nạp được hệ số đúng model/version, `ready()` vẫn false. NVS/flash và kiểm tra CRC của bản lưu do ứng dụng quản lý.
+
+CSV v0.1.2 giữ 17 cột đầu và thêm `qw,qx,qy,qz,ix,iy,iz,acc_weight`. `i*` là hiệu chỉnh tích phân nói trên, không phải bias raw hoặc tốc độ quay thật. Viewer đọc được cả log cũ lẫn mới. Sau khi cập nhật, tải lại trang bằng Ctrl+F5 trước khi kết nối USB.
 
 ## ESP-IDF / STM32 HAL
 

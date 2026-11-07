@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.1.2 — 2026-11-07
+
+- Fix portable AHRS startup: wait for gyro calibration, seed tilt directly from
+  settled gravity, then run the unchanged INAV update. Do not accumulate integral
+  error against a false level orientation while calibrating. Repeat on recalibration.
+- Require valid attitude initialization before ready; reject initial freefall,
+  invalid acceleration and magnitudes outside 0.8–1.2 g.
+- Correct the custom FC profile to `{-2,1,3}` after logs showed negative Z and
+  the user confirmed swapped roll/pitch. Remaining X/Y signs need a motion check.
+- Append quaternion, integral gyro correction and acc weight to diagnostic CSV;
+  preserve viewer support for old 17-column logs and headerless reconnects.
+- Add startup/late-recalibration/six-face regression tests and stationary-log
+  analysis artifacts. Synthetic regressions are not new hardware measurements.
+
 ## 0.1.1 — 2026-11-07
 
 - Fix public-header collisions with Arduino's `sq` and `radians` macros;

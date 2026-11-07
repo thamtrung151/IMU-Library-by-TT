@@ -1,4 +1,4 @@
-# Port notes — v0.1.1
+# Port notes — v0.1.2
 
 Upstream: INAV 9.0.1, `d44f2cf6e60cc9318b10551291b596370b5c957b`.
 This is a **six-axis portable robot profile**, not full firmware equivalence.
@@ -40,6 +40,13 @@ driver/scheduler/default filter configuration or every recovery branch.
 | Preserve settled acc filter state when gyro calibration completes | Prevent a false acceleration transient |
 | Float Euler and 64-bit relative output timestamp | Retain precision rather than MSP's integer yaw; handle timer wrap |
 | Prefix internal square/radians helpers | Avoid Arduino macro collisions without undefining user macros or changing formulas |
+| Seed initial tilt from gravity after gyro calibration, including inverted starts | Hardware logs exposed false large rotations from an identity quaternion against negative Z; do not accumulate pre-calibration integral feedback |
+| Ready requires gyro and initial tilt; 0.8–1.2 g initial magnitude guard | Avoid advertising a valid attitude before orientation can be initialized |
+
+Startup policy lives in `InavStartup.cpp`, outside generated INAV math/update.
+This is an explicit portable-profile change, not a claim that the original INAV
+function includes this initializer. The reference test still compares the native
+update math separately. See `reports/2026-11-07-stationary/README.md` for evidence.
 
 The core is allocation-free. Filters cache coefficients; direct burst I/O is used.
 The current Arduino adapter is synchronous SPI/I²C. DMA, hardware FIFO and an

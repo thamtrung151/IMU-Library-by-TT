@@ -17,6 +17,8 @@ public:
     float lastAccWeight = 0;
     uint32_t recoveries = 0;
     void reset();
+    // Portable startup step: derive tilt from valid stationary gravity, yaw = 0.
+    bool alignToAcceleration(const fpVector3_t& accCmss);
     void computeRotationMatrix();
     void step(const fpVector3_t& gyroRad, const fpVector3_t& accCmss,
               float dt, uint32_t uptimeMs, bool armed);

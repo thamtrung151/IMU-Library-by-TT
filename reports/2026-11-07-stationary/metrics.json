@@ -1,0 +1,153 @@
+{
+  "measured_logs": [
+    {
+      "file": "ttimu-2026-11-07T16-43-32-371Z.csv",
+      "sha256": "cb19f5f28091bbe447ad0cadc0a95a54c071a679b0be33721065a1444dfd1523",
+      "samples": 2090,
+      "duration_s": 20.989109,
+      "device_time_s": [
+        134.647221,
+        155.63633
+      ],
+      "csv_rate_hz": 99.52780749292407,
+      "angles": {
+        "roll": {
+          "first_deg": -3.418,
+          "last_unwrapped_deg": -171.476,
+          "delta_deg": -168.058,
+          "linear_rate_deg_per_min": -617.9834020305541
+        },
+        "pitch": {
+          "first_deg": -6.091,
+          "last_unwrapped_deg": -15.467,
+          "delta_deg": -9.376000000000001,
+          "linear_rate_deg_per_min": -64.17391870365205
+        },
+        "yaw": {
+          "first_deg": 359.813,
+          "last_unwrapped_deg": 242.16200000000003,
+          "delta_deg": -117.65099999999995,
+          "linear_rate_deg_per_min": -455.65238692902363
+        }
+      },
+      "acc_mean_mps2": [
+        0.2660190430622006,
+        -0.14837311004784676,
+        -9.813116602870823
+      ],
+      "acc_norm_mean_mps2": 9.817843329731025,
+      "acc_norm_sd_mps2": 0.0049647840748315,
+      "gyro_mean_deg_per_s": [
+        -0.0010502398627493695,
+        -0.0022397441082386725,
+        -4.824907748470092e-05
+      ],
+      "gyro_sd_deg_per_s": [
+        0.028246048081593995,
+        0.03053858008613758,
+        0.03521865622617881
+      ],
+      "temperature_c": [
+        31.36,
+        31.93
+      ],
+      "logged_dt_us": [
+        1000.0,
+        1003.9612440191388,
+        1016.0
+      ],
+      "gap_counter": [
+        0.0,
+        0.0
+      ],
+      "late_counter": [
+        0.0,
+        0.0
+      ],
+      "calibration_retry_counter": [
+        1.0,
+        1.0
+      ],
+      "ready_fraction": 1.0,
+      "gyro_only_heading_rate_deg_per_min": -0.22246847923178437,
+      "approx_gyro_plus_p_heading_rate_deg_per_min": -435.5388331884835,
+      "unlogged_correction_heading_rate_deg_per_min": -20.11355374054002,
+      "limits": "100 Hz post-filtered data; no raw counts, bias values, quaternion, I feedback or boot interval. Kinematic/P estimates are approximate; unarmed default profile assumed."
+    },
+    {
+      "file": "ttimu-2026-11-07T16-44-26-704Z.csv",
+      "sha256": "3ba3579ffa9177eab03195db3005da7951667dc80cc44aa58792441e7f5b0bd4",
+      "samples": 2509,
+      "duration_s": 25.199154999999998,
+      "device_time_s": [
+        19.787665,
+        44.98682
+      ],
+      "csv_rate_hz": 99.52714684282073,
+      "angles": {
+        "roll": {
+          "first_deg": -179.621,
+          "last_unwrapped_deg": -180.424,
+          "delta_deg": -0.8029999999999973,
+          "linear_rate_deg_per_min": -1.0747863766215076
+        },
+        "pitch": {
+          "first_deg": 0.419,
+          "last_unwrapped_deg": 1.223,
+          "delta_deg": 0.804,
+          "linear_rate_deg_per_min": 1.0955496076353302
+        },
+        "yaw": {
+          "first_deg": 207.649,
+          "last_unwrapped_deg": 209.488,
+          "delta_deg": 1.8389999999999986,
+          "linear_rate_deg_per_min": 4.361607886082061
+        }
+      },
+      "acc_mean_mps2": [
+        -0.045398565165404574,
+        -0.09105185332801904,
+        -9.821368752491022
+      ],
+      "acc_norm_mean_mps2": 9.821896241685998,
+      "acc_norm_sd_mps2": 0.004487577032188617,
+      "gyro_mean_deg_per_s": [
+        -0.03461427808391594,
+        -0.029662954483267577,
+        0.0024402658424742853
+      ],
+      "gyro_sd_deg_per_s": [
+        0.028577317823152922,
+        0.031107769911471832,
+        0.03510160410802831
+      ],
+      "temperature_c": [
+        31.48,
+        32.04
+      ],
+      "logged_dt_us": [
+        1000.0,
+        1004.2271821442806,
+        1015.0
+      ],
+      "gap_counter": [
+        0.0,
+        0.0
+      ],
+      "late_counter": [
+        0.0,
+        0.0
+      ],
+      "calibration_retry_counter": [
+        1.0,
+        1.0
+      ],
+      "ready_fraction": 1.0,
+      "gyro_only_heading_rate_deg_per_min": 0.17681362902046868,
+      "approx_gyro_plus_p_heading_rate_deg_per_min": -0.1409682434947932,
+      "unlogged_correction_heading_rate_deg_per_min": 4.502576129576856,
+      "limits": "100 Hz post-filtered data; no raw counts, bias values, quaternion, I feedback or boot interval. Kinematic/P estimates are approximate; unarmed default profile assumed."
+    }
+  ],
+  "note": "startup-model.csv is a separate synthetic zero-gyro experiment, not raw log replay."
+}

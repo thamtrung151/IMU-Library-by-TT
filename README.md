@@ -2,7 +2,7 @@
 
 Thư viện C++ xử lý IMU 6 trục cho **ESP32 / STM32**, với lõi tính góc port từ **INAV 9.0.1**.
 
-**v0.1.1 — bản thử nghiệm:** đã kiểm tra phép tính và biên dịch ví dụ ESP32-S3/STM32F411. Chưa đo drift trên bo thật; cần bước đó trước khi dùng dữ liệu để điều khiển bot.
+**v0.1.2 — bản thử nghiệm:** sửa khởi tạo tư thế và trục FC từ hai log đứng yên thực tế; đã kiểm thử phép tính và build ESP32-S3/STM32F411. Chưa có log đo lại bản sửa trên bo thật để xác nhận chất lượng điều khiển.
 
 ## Có gì?
 
@@ -19,7 +19,7 @@ Thêm vào environment của robot trong `platformio.ini`, giữ cấu hình boa
 
 ```ini
 lib_deps =
-    https://github.com/thamtrung151/IMU-Library-by-TT.git#v0.1.1
+    https://github.com/thamtrung151/IMU-Library-by-TT.git#v0.1.2
 ```
 
 Adapter có sẵn dùng `framework = arduino` **trong PlatformIO**, không cần Arduino IDE. Repo riêng tư cần Git trên máy đăng nhập tài khoản có quyền truy cập. Ghim tag để dự án giữ đúng phiên bản thư viện.
@@ -92,6 +92,7 @@ Các cấu hình PlatformIO STM32 kèm repo bật USB CDC cho BlackPill; nếu d
 - [x] Lõi góc INAV 9, hiệu chuẩn gyro, lọc và API C++.
 - [x] Driver bốn IMU, ví dụ ESP32-S3/STM32, giao diện đồ thị/CSV.
 - [x] Kiểm tra trên máy và biên dịch chéo cho ESP32-S3/STM32F411.
+- [x] Phân tích hai log đứng yên trên FC thực; sửa khởi tạo tư thế và cấu hình trục. [Kết quả debug](reports/2026-11-07-stationary/README.md).
 - [ ] Kiểm tra từng IMU trên bo thật, đo drift/nhiệt/rung và chỉnh profile theo log.
 - [ ] Hoàn thiện hiệu chuẩn acc 6 tư thế, bù nhiệt và các tối ưu theo kết quả đo.
 

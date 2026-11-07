@@ -1,19 +1,20 @@
-# Kiểm thử bản 0.1.1
+# Kiểm thử bản 0.1.2
 
-Kiểm tra cập nhật ngày **07/11/2026**. Phân biệt rõ: build được và đúng phép tính chưa đồng nghĩa đã đo chất lượng trên phần cứng.
+Kiểm tra cập nhật ngày **08/11/2026**. Phân biệt rõ: build được và đúng phép tính chưa đồng nghĩa đã đo chất lượng trên phần cứng.
 
 ## Đã qua
 
 - **Host C++11:** build bằng CMake/Ninja, GCC 15.2.0 trên Windows. Kiểm tra bias/calib retry, đơn vị, nhiều instance, wrap timer, mất mẫu, cấu hình sai, I/O lỗi, byte order và thanh ghi của bốn model.
 - **Header tích hợp:** hồi quy lỗi macro `sq`/`radians` khi Arduino.h đứng trước thư viện; giữ nguyên macro của ứng dụng. Các ví dụ nhúng cũng dùng thứ tự include này trên cả ESP32/STM32.
 - **Đối chiếu INAV:** 100.000 bước ở 2 kHz với các trạng thái/gate khác nhau. Sai khác component quaternion cực đại bằng 0 trong lần chạy host này, có xét q và -q. So cả integral và acc weight. Reference dùng hàm Mahony đầy đủ từ snapshot gốc, cùng các math primitives được giữ nguyên. Đây là phép thử numeric hợp lệ, không phải toàn firmware hay ground truth vật lý.
-- **Parser đồ thị:** 6 test Node.js cho dữ liệu chia chunk, CRLF, dòng lỗi/NaN, reconnect, CSV và unwrap yaw; bộ đệm có giới hạn.
+- **Parser đồ thị:** 7 test Node.js cho dữ liệu chia chunk, CRLF, dòng lỗi/NaN, reconnect, CSV cũ 17 cột/mới 25 cột và unwrap yaw; bộ đệm có giới hạn.
+- **Startup:** sáu mặt gravity, khởi động úp/nghiêng, freefall/gravity lỗi, ready, map trục FC và hiệu chuẩn lại ở uptime 150 giây. Không còn tự hội tụ từ pose phẳng giả định trong các ca đứng yên này.
 - **Trình duyệt thật:** desktop 1440 px và mobile 390 px; không tràn ngang, không lỗi JavaScript. Kiểm tra demo có nhãn, Web Serial bằng port giả lập, gửi CALIBRATE/ZERO_YAW, tải và mở lại CSV. Chưa kết nối USB IMU thật.
 - **Biên dịch chéo:** bốn cấu hình PlatformIO thành công: ESP32-S3 SPI, ESP32-S3 I²C, STM32F411 SPI, STM32F411 I²C. Các ví dụ dùng chung giao thức đồ thị; STM32 bật USB CDC.
-- **FC tự chế:** `tt_f411_icm42605` build/link thành công; ELF có `SystemClock_Config` dạng strong, thay đúng hàm weak BlackPill. Cấu hình HSE 8 MHz, CPU 96 MHz/USB 48 MHz, SPI2/PC13. Chưa nạp hoặc thử USB/trục trên bo thật.
-- **Dự án robot độc lập:** ESP32-S3 dùng `lib_deps` local symlink, không có `-I src` của repo; include Arduino.h trước thư viện, build/link thành công. Bản cũ v0.1.0 được phát hiện lỗi include trong phép thử này và đã được sửa ở v0.1.1.
+- **FC tự chế:** `tt_f411_icm42605` build/link thành công; ELF có `SystemClock_Config` dạng strong, thay đúng hàm weak BlackPill. Cấu hình HSE 8 MHz, CPU 96 MHz/USB 48 MHz, SPI2/PC13. Người dùng đã nạp v0.1.1 và gửi hai log USB thật: có lỗi startup/trục, được phân tích trong [báo cáo](../reports/2026-11-07-stationary/README.md). Chưa có log phần cứng của v0.1.2.
+- **Dự án robot độc lập:** ESP32-S3 dùng `lib_deps` local symlink, không có `-I src` của repo; include Arduino.h trước thư viện, build/link thành công ở v0.1.1. Bản cũ v0.1.0 được phát hiện lỗi include trong phép thử này và đã được sửa ở v0.1.1.
 
-Chi tiết build và footprint của **toàn ví dụ, gồm Arduino core/USB**, ở [build-results.json](build-results.json). `sizeof(IMU)` trên host ABI là 2408 byte; không phải tổng RAM firmware. Chưa đo CPU/latency trên MCU đang chạy.
+Chi tiết build và footprint của **toàn ví dụ, gồm Arduino core/USB**, ở [build-results.json](build-results.json). `sizeof(IMU)` trên host ABI là 2424 byte; không phải tổng RAM firmware. Chưa đo CPU/latency trên MCU đang chạy.
 
 Toolchain được dùng: PlatformIO 6.2.0; Espressif32 6.6.0 / Arduino ESP32 2.0.14 / Xtensa 8.4.0; STM32 platform 19.7.1 / Arduino STM32 2.12.0 / ARM GCC 12.3.1. Có warning `uartSetPins` trong Arduino ESP32 2.0.14, ngoài source thư viện; build/link vẫn thành công.
 

@@ -14,3 +14,4 @@ __pycache__/
 node_modules/
 test-results/
 .DS_Store
+reports/**/startup-model.csv
