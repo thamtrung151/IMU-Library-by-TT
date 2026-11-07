@@ -6,4 +6,4 @@ if errorlevel 1 (
 ) else (
     py -3 tools\serve_viewer.py --open
 )
-pause
+if errorlevel 1 pause

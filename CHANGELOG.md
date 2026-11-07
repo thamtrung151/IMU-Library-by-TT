@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.4 — 2026-11-08
+
+- Fix mixed old CSS/JS with new HTML: content-derived asset URLs, no-store HTTP
+  responses and a cache-safe launch URL. Cover transitive telemetry module imports.
+- Reuse only this checkout's recognized viewer server; use a free port when an
+  old/unrelated server occupies 8080. Windows uses exclusive port ownership.
+- Add HTTP/startup tests and reproduce an upgrade in a browser with old CSS/JS
+  explicitly cached, without clearing the cache. No MCU behavior change or reflash required.
+
 ## 0.1.3 — 2026-11-08
 
 - Compact monitor: top signal/temperature strip, one large combined angle chart

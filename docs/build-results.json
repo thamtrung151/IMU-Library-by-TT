@@ -1,6 +1,6 @@
 {
   "date": "2026-11-08",
-  "release": "0.1.3",
+  "release": "0.1.4",
   "hardware_runtime_tested": false,
   "cpu_or_drift_benchmarked": false,
   "host_cpp11": "GCC 15.2.0 MinGW Windows",
@@ -83,8 +83,12 @@
       "linked hover/readouts",
       "26-column serial mock",
       "raw CSV export",
-      "old 25-column real log import"
+      "old 25-column real log import",
+      "same-origin old CSS/JS cached, then modern viewer loads without clearing cache"
     ],
-    "appearance": "white canvases, black axes text and outer workspace, #39C5BB primary buttons, 36px centered angle readouts"
-  }
+    "appearance": "white canvases, black axes text and outer workspace, #39C5BB primary buttons, 36px centered angle readouts",
+    "cached_upgrade_without_clearing_cache": true
+  },
+  "embedded_local_footprint_verified_release": "0.1.3; v0.1.4 is a viewer/launcher-only hotfix",
+  "viewer_http_regression_tests": 3
 }

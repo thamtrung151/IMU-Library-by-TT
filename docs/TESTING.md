@@ -1,9 +1,10 @@
-# Kiểm thử bản 0.1.3
+# Kiểm thử bản 0.1.4
 
 Kiểm tra cập nhật ngày **08/11/2026**. Phân biệt rõ: build được và đúng phép tính chưa đồng nghĩa đã đo chất lượng trên phần cứng.
 
 ## Đã qua
 
+- **HTTP/cache:** 3 test cho no-store/không trả 304 cũ, revision thống nhất giữa HTML/CSS/app/module, tái dùng đúng server của checkout và né cổng bị ứng dụng khác chiếm. Kiểm tra Chrome đã cache CSS/JS cũ trên cùng origin (transferSize=0), chuyển sang trang mới không xóa cache: vẫn đúng bảy đồ thị/màu/bố cục. Windows dùng SO_EXCLUSIVEADDRUSE để không bind đè server cũ.
 - **Host C++11:** build bằng CMake/Ninja, GCC 15.2.0 trên Windows. Kiểm tra bias/calib retry, đơn vị, nhiều instance, wrap timer, mất mẫu, cấu hình sai, I/O lỗi, byte order và thanh ghi của bốn model.
 - **Header tích hợp:** hồi quy lỗi macro `sq`/`radians` khi Arduino.h đứng trước thư viện; giữ nguyên macro của ứng dụng. Các ví dụ nhúng cũng dùng thứ tự include này trên cả ESP32/STM32.
 - **Đối chiếu INAV:** 100.000 bước ở 2 kHz với các trạng thái/gate khác nhau. Sai khác component quaternion cực đại bằng 0 trong lần chạy host này, có xét q và -q. So cả integral và acc weight. Reference dùng hàm Mahony đầy đủ từ snapshot gốc, cùng các math primitives được giữ nguyên. Đây là phép thử numeric hợp lệ, không phải toàn firmware hay ground truth vật lý.
@@ -16,6 +17,8 @@ Kiểm tra cập nhật ngày **08/11/2026**. Phân biệt rõ: build được v
 - **Dự án robot độc lập:** ESP32-S3 dùng `lib_deps` local symlink, không có `-I src` của repo; include Arduino.h trước thư viện, build/link thành công ở v0.1.1. Bản cũ v0.1.0 được phát hiện lỗi include trong phép thử này và đã được sửa ở v0.1.1.
 
 Chi tiết build và footprint của **toàn ví dụ, gồm Arduino core/USB**, ở [build-results.json](build-results.json). `sizeof(IMU)` trên host ABI là 2424 byte; không phải tổng RAM firmware. Chưa đo CPU/latency trên MCU đang chạy.
+
+v0.1.4 chỉ sửa viewer/launcher; hành vi MCU như v0.1.3, không yêu cầu nạp lại FC. Số footprint local vẫn ghi rõ là bản v0.1.3; CI tiếp tục build các cấu hình ở tag mới.
 
 Toolchain được dùng: PlatformIO 6.2.0; Espressif32 6.6.0 / Arduino ESP32 2.0.14 / Xtensa 8.4.0; STM32 platform 19.7.1 / Arduino STM32 2.12.0 / ARM GCC 12.3.1. Có warning `uartSetPins` trong Arduino ESP32 2.0.14, ngoài source thư viện; build/link vẫn thành công.
 

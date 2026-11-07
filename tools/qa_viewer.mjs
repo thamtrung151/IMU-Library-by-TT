@@ -19,6 +19,20 @@ const importText=async (text,name)=>{
 try{
   await send('Page.enable');await send('Runtime.enable');
   await send('Emulation.setDeviceMetricsOverride',{width:1440,height:900,deviceScaleFactor:1,mobile:false});
+  if(process.env.TTIMU_QA_CACHE_SEED==='1'){
+    await send('Network.enable');
+    await send('Page.navigate',{url:new URL('/__test__/cache-seed',url).href});
+    for(let i=0;i<50;i++){if(await evaluate('window.__ttimuOldCachedModule===true'))break;await delay(100);}
+    assert.equal(await evaluate('window.__ttimuOldCachedModule===true'),true);
+    assert.equal(await evaluate('getComputedStyle(document.body).backgroundColor'),'rgb(14, 21, 31)');
+    // Reload the seed document once more; its unversioned assets remain cached.
+    await send('Page.navigate',{url:new URL('/__test__/cache-seed?again=1',url).href});
+    for(let i=0;i<50;i++){if(await evaluate('window.__ttimuOldCachedModule===true'))break;await delay(100);}
+    assert.equal(await evaluate('window.__ttimuOldCachedModule===true'),true);
+    const seededAssets=await evaluate('performance.getEntriesByType("resource").filter(r=>r.name.endsWith("/style.css")||r.name.endsWith("/app.mjs")).map(r=>({name:r.name,transfer:r.transferSize,decoded:r.decodedBodySize}))');
+    assert.equal(seededAssets.length,2);assert(seededAssets.every(r=>r.transfer===0&&r.decoded>0));
+    console.log('Seeded old CSS/JS cache on the same origin; cache was not cleared.');
+  }
   await send('Page.navigate',{url});
   for(let i=0;i<60;i++){if(await evaluate('!!document.getElementById("roll")'))break;await delay(100);}
   assert.equal(await evaluate('document.querySelectorAll("canvas").length'),7);

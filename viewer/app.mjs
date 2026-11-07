@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import {TelemetryParser, TraceBuffer, COLUMNS, csvRow} from './telemetry.mjs';
+import {TelemetryParser, TraceBuffer, COLUMNS, csvRow} from './telemetry.mjs?v=ttimu-ui-20261108-2';
 
 const $=id=>document.getElementById(id), buffer=new TraceBuffer(10000);
 const colors=['#2f80ed','#009c86','#c77912'], angleKeys=['roll','pitch','yaw'];

@@ -2,7 +2,7 @@
 
 Thư viện C++ xử lý IMU 6 trục cho **ESP32 / STM32**, với lõi tính góc port từ **INAV 9.0.1**.
 
-**v0.1.3 — bản thử nghiệm:** 7 đồ thị cùng lúc, trạng thái/nhiệt độ ở đầu trang; đổi dấu roll trong firmware riêng FC. Người dùng đã xác nhận v0.1.2 ổn định hơn; kiểm tra dài hạn và phần cứng sau đổi dấu còn chờ đo.
+**v0.1.4 — bản thử nghiệm:** sửa lỗi giao diện mới tải lẫn CSS/JS cũ; không cần nạp lại firmware v0.1.3. Có 7 đồ thị cùng lúc, trạng thái/nhiệt độ ở đầu trang; profile FC đã đổi dấu roll từ v0.1.3. Kiểm tra dài hạn trên bo còn chờ đo.
 
 ## Có gì?
 
@@ -19,7 +19,7 @@ Thêm vào environment của robot trong `platformio.ini`, giữ cấu hình boa
 
 ```ini
 lib_deps =
-    https://github.com/thamtrung151/IMU-Library-by-TT.git#v0.1.3
+    https://github.com/thamtrung151/IMU-Library-by-TT.git#v0.1.4
 ```
 
 Adapter có sẵn dùng `framework = arduino` **trong PlatformIO**, không cần Arduino IDE. Repo riêng tư cần Git trên máy đăng nhập tài khoản có quyền truy cập. Ghim tag để dự án giữ đúng phiên bản thư viện.
@@ -81,7 +81,7 @@ Nạp một ví dụ ở trên (cả SPI/I²C đều gửi cùng định dạng 
 python tools/serve_viewer.py
 ```
 
-Trên Windows nhấp đúp **Start Viewer.cmd**. Mở **http://localhost:8080** bằng Chrome/Edge → **Kết nối USB**, baud `921600`. Ctrl+F5 sau khi cập nhật. Góc lớn và sáu đồ thị gyro/acc hiện cùng lúc; rê chuột để đọc cùng một thời điểm, bấm các nhãn góc để ẩn/hiện đường. Nút **Mô phỏng** luôn có nhãn riêng.
+Trên Windows nhấp đúp **Start Viewer.cmd**, dùng trang tự mở bằng Chrome/Edge → **Kết nối USB**, baud `921600`. Mặc định là localhost:8080; nếu cổng đó đang có server cũ, launcher tự chọn cổng trống và mở đúng URL. CSS/JS tự đổi mã theo nội dung để tránh cache cũ. Góc lớn và sáu đồ thị gyro/acc hiện cùng lúc; rê chuột đọc cùng một thời điểm, bấm nhãn góc để ẩn/hiện đường. Nút **Mô phỏng** luôn có nhãn riêng.
 
 Các cấu hình PlatformIO STM32 kèm repo bật USB CDC cho BlackPill; nếu dùng USB–UART ngoài, chọn Serial và pin phù hợp bo.
 
