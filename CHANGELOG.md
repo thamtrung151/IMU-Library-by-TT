@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.1.1 — 2026-11-07
+
+- Fix public-header collisions with Arduino's `sq` and `radians` macros;
+  Arduino.h can be included first without changing user macros or IMU math.
+- Add a standalone PlatformIO ESP32-S3 robot project and prioritize PlatformIO
+  installation in the README, including Git-tag and local-library workflows.
+- Add a header compatibility regression test; all embedded examples now include
+  Arduino.h first to exercise normal consumer include order.
+- Add a custom F411 FC profile: 8 MHz HSE, 96 MHz CPU/48 MHz USB clock override,
+  ICM42605 on SPI2/PC13, OSD chip deselection, native USB CSV and DFU upload.
+- Add FC flashing/axis-check instructions and a Windows viewer launcher.
+  Custom PCB orientation and hardware runtime remain unverified.
+
 ## 0.1.0 — 2026-11-03
 
 First prototype of **IMU Library by TT**.

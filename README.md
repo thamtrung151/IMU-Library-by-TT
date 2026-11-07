@@ -2,7 +2,7 @@
 
 Thư viện C++ xử lý IMU 6 trục cho **ESP32 / STM32**, với lõi tính góc port từ **INAV 9.0.1**.
 
-**v0.1.0 — bản đầu để thử nghiệm:** đã kiểm tra phép tính và biên dịch ví dụ ESP32-S3/STM32F411. Chưa đo drift trên bo thật; cần bước đó trước khi dùng dữ liệu để điều khiển bot.
+**v0.1.1 — bản thử nghiệm:** đã kiểm tra phép tính và biên dịch ví dụ ESP32-S3/STM32F411. Chưa đo drift trên bo thật; cần bước đó trước khi dùng dữ liệu để điều khiển bot.
 
 ## Có gì?
 
@@ -13,7 +13,29 @@ Thư viện C++ xử lý IMU 6 trục cho **ESP32 / STM32**, với lõi tính g�
 - Trang HTML xem đồ thị qua USB, mở/ghi CSV, hiệu chuẩn lại và đặt mốc yaw.
 - Lõi không cấp phát heap khi chạy. Có interface để dùng ESP-IDF/STM32 HAL ngoài Arduino.
 
+## Dùng trong dự án PlatformIO
+
+Thêm vào environment của robot trong `platformio.ini`, giữ cấu hình board/pin của dự án:
+
+```ini
+lib_deps =
+    https://github.com/thamtrung151/IMU-Library-by-TT.git#v0.1.1
+```
+
+Adapter có sẵn dùng `framework = arduino` **trong PlatformIO**, không cần Arduino IDE. Repo riêng tư cần Git trên máy đăng nhập tài khoản có quyền truy cập. Ghim tag để dự án giữ đúng phiên bản thư viện.
+
+Muốn sửa thư viện trên máy và dùng ngay trong robot, thay URL bằng:
+
+```ini
+lib_deps =
+    symlink://C:/Users/VICTUS/IMU Library by TT
+```
+
+Mẫu dự án độc lập: [platformio.ini](examples/PlatformIO_Robot/platformio.ini) và [src/main.cpp](examples/PlatformIO_Robot/src/main.cpp). Copy thư mục `PlatformIO_Robot`, sửa board/pin rồi Build/Upload. Mẫu này lấy dữ liệu cho bộ điều khiển, không tự gửi đồ thị.
+
 ## Nối dây và chạy
+
+**FC F411 + ICM42605 / thạch anh 8 MHz / SPI2 CS PC13:** dùng environment `tt_f411_icm42605`. Hướng dẫn riêng: [nạp FC và kết nối USB](docs/FC_F411.md). Profile này có clock riêng, không dùng clock 25 MHz của BlackPill.
 
 Ví dụ SPI: sửa pin cho đúng bo của bạn, dùng logic **3,3 V**, chung GND.
 
@@ -26,9 +48,13 @@ Ví dụ SPI: sửa pin cho đúng bo của bạn, dùng logic **3,3 V**, chung 
 
 I²C dùng SDA/SCL của bo, địa chỉ thường `0x68` hoặc `0x69`. MPU6050 không dùng SPI.
 
-1. Tải ZIP thư viện từ [Releases](https://github.com/thamtrung151/IMU-Library-by-TT/releases), cài bằng Arduino IDE → **Add .ZIP Library**.
-2. Mở ví dụ phù hợp: [ESP32-S3 + đồ thị](examples/SerialPlotter/SerialPlotter.ino), [STM32 SPI](examples/STM32_SPI/STM32_SPI.ino), [MPU6050 I²C](examples/MPU6050_I2C/MPU6050_I2C.ino).
-3. Sửa pin, build/nạp cho bo của bạn. Giữ IMU đứng yên khoảng **2 giây** khi khởi động.
+Để chạy ví dụ đồ thị ngay từ repo thư viện: sửa pin trong [ESP32-S3 SPI](examples/SerialPlotter/SerialPlotter.ino), [STM32 SPI](examples/STM32_SPI/STM32_SPI.ino) hoặc [MPU6050 I²C](examples/MPU6050_I2C/MPU6050_I2C.ino), rồi chạy:
+
+```sh
+pio run -e esp32s3 -t upload
+```
+
+Environment khác: `stm32f411`, `esp32s3_i2c`, `stm32f411_i2c`. Giữ IMU đứng yên khoảng **2 giây** khi khởi động. `platformio.ini` ở gốc repo dành cho các ví dụ này; dự án robot dùng cấu hình riêng như phần trên.
 
 Cách lấy dữ liệu sau khi đã khởi tạo như ví dụ:
 
@@ -55,9 +81,9 @@ Nạp một ví dụ ở trên (cả SPI/I²C đều gửi cùng định dạng 
 python tools/serve_viewer.py
 ```
 
-Mở **http://localhost:8080** bằng Chrome/Edge → **Kết nối USB**, baud `921600`. Dữ liệu giữ trên máy; không cần tài khoản/cloud. Nút “Xem thử giao diện” dùng dữ liệu mô phỏng và luôn ghi rõ trên màn hình.
+Trên Windows có thể nhấp đúp **Start Viewer.cmd**. Mở **http://localhost:8080** bằng Chrome/Edge → **Kết nối USB**, baud `921600`. Dữ liệu giữ trên máy; không cần tài khoản/cloud. Nút “Xem thử giao diện” dùng dữ liệu mô phỏng và luôn ghi rõ trên màn hình.
 
-STM32: chọn USB CDC trong Arduino IDE nếu dùng cổng USB trên bo; hoặc dùng bộ USB–UART nối với chân Serial. Cấu hình PlatformIO kèm repo bật USB CDC cho BlackPill.
+Các cấu hình PlatformIO STM32 kèm repo bật USB CDC cho BlackPill; nếu dùng USB–UART ngoài, chọn Serial và pin phù hợp bo.
 
 ![Trang theo dõi IMU — dữ liệu mô phỏng](docs/monitor.png)
 

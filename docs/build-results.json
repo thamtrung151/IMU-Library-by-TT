@@ -1,6 +1,6 @@
 {
-  "date": "2026-11-03",
-  "release": "0.1.0",
+  "date": "2026-11-07",
+  "release": "0.1.1",
   "hardware_runtime_tested": false,
   "cpu_or_drift_benchmarked": false,
   "host_cpp11": "GCC 15.2.0 MinGW Windows",
@@ -36,6 +36,29 @@
       "static_ram_bytes": 7916,
       "flash_bytes": 47296,
       "scope": "entire_example_including_Arduino_core_and_USB"
+    },
+    {
+      "environment": "tt_f411_icm42605",
+      "status": "compiled_and_linked",
+      "static_ram_bytes": 7920,
+      "flash_bytes": 41372,
+      "scope": "entire_example_including_Arduino_core_and_USB"
     }
-  ]
+  ],
+  "public_header_macro_compatibility": "passed",
+  "standalone_platformio_consumer": {
+    "board": "esp32-s3-devkitc-1",
+    "dependency": "local symlink",
+    "include_order": "Arduino.h first",
+    "status": "compiled_and_linked"
+  },
+  "fc_profile": {
+    "hse_hz": 8000000,
+    "cpu_hz": 96000000,
+    "usb_clock_hz": 48000000,
+    "clock_symbol": "strong SystemClock_Config override verified in linked ELF",
+    "spi": 2,
+    "cs": "PC13",
+    "alignment": "CW180_DEG_FLIP starting value; custom PCB alignment not verified"
+  }
 }

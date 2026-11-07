@@ -12,7 +12,7 @@ static inline void vectorZero(fpVector3_t * v)
 
 static inline float vectorNormSquared(const fpVector3_t * v)
 {
-    return sq(v->x) + sq(v->y) + sq(v->z);
+    return inavSquare(v->x) + inavSquare(v->y) + inavSquare(v->z);
 }
 
 static inline fpVector3_t * vectorNormalize(fpVector3_t * result, const fpVector3_t * v)
@@ -87,7 +87,7 @@ static inline fpQuaternion_t * quaternionInitFromVector(fpQuaternion_t * result,
 
 static inline float quaternionNormSqared(const fpQuaternion_t * q)
 {
-    return sq(q->q0) + sq(q->q1) + sq(q->q2) + sq(q->q3);
+    return inavSquare(q->q0) + inavSquare(q->q1) + inavSquare(q->q2) + inavSquare(q->q3);
 }
 
 static inline fpQuaternion_t * quaternionMultiply(fpQuaternion_t * result, const fpQuaternion_t * a, const fpQuaternion_t * b)

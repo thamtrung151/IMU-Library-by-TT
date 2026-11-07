@@ -15,7 +15,7 @@ using namespace ttimu::detail;
 static float distance(const fpQuaternion_t& a,const fpQuaternion_t& b){
     float sum=0,sumNeg=0;
     const float av[]={a.q0,a.q1,a.q2,a.q3},bv[]={b.q0,b.q1,b.q2,b.q3};
-    for(int i=0;i<4;++i){sum+=sq(av[i]-bv[i]);sumNeg+=sq(av[i]+bv[i]);}
+    for(int i=0;i<4;++i){sum+=inavSquare(av[i]-bv[i]);sumNeg+=inavSquare(av[i]+bv[i]);}
     return sqrtf(std::min(sum,sumNeg));
 }
 
@@ -91,7 +91,7 @@ static void wrapAndInstances(){
 
 static void rotations(){
     InavCore core;core.reset();
-    fpVector3_t gyro={{0,0,radians(90)}},acc={{0,0,Gravity}};
+    fpVector3_t gyro={{0,0,inavRadians(90)}},acc={{0,0,Gravity}};
     for(unsigned i=0;i<1000;++i)core.step(gyro,acc,0.001f,30000+i,true);
     float yaw=-atan2_approx(core.rMat[1][0],core.rMat[0][0])*180/M_PIf;
     CHECK(std::fabs(yaw+90)<0.02f);

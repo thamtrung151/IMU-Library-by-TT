@@ -224,7 +224,7 @@ bool IMU::feed(const RawSample& raw) {
     for(unsigned a=0;a<3;++a) {
         float g=config_.gyroLowpassHz?pt1FilterApply(&gyroLpf_[a],gyro.v[a]):gyro.v[a];
         if(config_.gyroKalman) {updateAxisVariance(&kalman_[a],g);g=kalman_process(&kalman_[a],g);}
-        gyro.v[a]=radians(g);
+        gyro.v[a]=inavRadians(g);
         if(config_.accelLowpassHz) acc.v[a]=biquadFilterApply(&accelLpf_[a],acc.v[a]);
         acc.v[a]*=Gravity;
     }

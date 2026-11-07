@@ -21,7 +21,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        environment: [esp32s3, stm32f411, esp32s3_i2c, stm32f411_i2c]
+        environment: [esp32s3, stm32f411, esp32s3_i2c, stm32f411_i2c, tt_f411_icm42605]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

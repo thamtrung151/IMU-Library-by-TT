@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // ESP32-S3 + ICM42688 / ICM42605 / MPU6500. Edit pins for your board.
+#include <Arduino.h>
 #include <IMULibrary.h>
 #include <ttimu/ArduinoBus.h>
 #include <ttimu/ArduinoMonitor.h>

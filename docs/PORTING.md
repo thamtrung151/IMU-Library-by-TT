@@ -1,4 +1,4 @@
-# Port notes — v0.1.0
+# Port notes — v0.1.1
 
 Upstream: INAV 9.0.1, `d44f2cf6e60cc9318b10551291b596370b5c957b`.
 This is a **six-axis portable robot profile**, not full firmware equivalence.
@@ -39,6 +39,7 @@ driver/scheduler/default filter configuration or every recovery branch.
 | At least 100 samples in calibration window | Avoid completion from a few delayed samples; variance test still assumes physical stillness |
 | Preserve settled acc filter state when gyro calibration completes | Prevent a false acceleration transient |
 | Float Euler and 64-bit relative output timestamp | Retain precision rather than MSP's integer yaw; handle timer wrap |
+| Prefix internal square/radians helpers | Avoid Arduino macro collisions without undefining user macros or changing formulas |
 
 The core is allocation-free. Filters cache coefficients; direct burst I/O is used.
 The current Arduino adapter is synchronous SPI/I²C. DMA, hardware FIFO and an

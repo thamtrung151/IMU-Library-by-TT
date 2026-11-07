@@ -7,7 +7,7 @@ import argparse
 import hashlib
 import json
 from pathlib import Path
-from vendor_inav import function
+from vendor_inav import function, adapt_helpers
 
 ROOT=Path(__file__).resolve().parents[1]
 def main():
@@ -66,6 +66,6 @@ fpVector3_t integral(){return drift;}
 float weight(){return accWeight;}
 }
 '''
-    args.output.parent.mkdir(parents=True,exist_ok=True);args.output.write_text(text,encoding='utf-8')
+    args.output.parent.mkdir(parents=True,exist_ok=True);args.output.write_text(adapt_helpers(text),encoding='utf-8')
     print('Generated independent full-function INAV reference from verified vendor snapshots.')
 if __name__=='__main__':main()

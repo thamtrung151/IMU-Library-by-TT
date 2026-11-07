@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+#include <Arduino.h>
 #include <IMULibrary.h>
 #include <ttimu/ArduinoBus.h>
 #include <ttimu/ArduinoMonitor.h>

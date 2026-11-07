@@ -13,6 +13,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SHA = 'd44f2cf6e60cc9318b10551291b596370b5c957b'
 
+def adapt_helpers(text):
+    # Keep Arduino.h macros intact, regardless of user include order.
+    names = {'sq': 'inavSquare', 'radians': 'inavRadians'}
+    return re.sub(r'\b(sq|radians)(?=\s*\()', lambda m: names[m[1]], text)
+
 def function(text, name):
     masked = re.sub(r'/\*.*?\*/|//[^\n]*|"(?:\\.|[^"\\])*"', lambda m: re.sub(r'[^\n]', ' ', m[0]), text, flags=re.S)
     m = re.search(r'\b' + re.escape(name) + r'\s*\([^;{}]*\)\s*\{', masked)
@@ -138,7 +143,8 @@ void InavCore::zeroYaw() {
     (detail/'InavCore.cpp').write_text(core,encoding='utf-8')
     for generated in ('InavCore.cpp','InavMath.cpp','InavVectors.h'):
         target=detail/generated
-        target.write_text('\n'.join(line.rstrip() for line in target.read_text(encoding='utf-8').splitlines())+'\n',encoding='utf-8')
+        adapted=adapt_helpers(target.read_text(encoding='utf-8'))
+        target.write_text('\n'.join(line.rstrip() for line in adapted.splitlines())+'\n',encoding='utf-8')
     (ROOT/'vendor/inav-9.0.1/manifest.json').write_text(json.dumps({'repository':'https://github.com/iNavFlight/inav','tag':'9.0.1','commit':SHA,'files':inventory},indent=2)+'\n',encoding='utf-8')
     print('Vendored pinned INAV source and generated math / six-axis core.')
 

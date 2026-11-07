@@ -14,6 +14,8 @@ That directory is source material; the library compiles only `src/`.
 The adapted code and original project code in this repository are distributed
 under **GNU GPL version 3 or, at your option, any later version**. See `LICENSE`.
 Adaptations were made on **2026-11-03** for this initial portable release.
+On **2026-11-07**, internal square/radians helper names were prefixed for Arduino
+macro compatibility; their formulas and the vendored originals are unchanged.
 
 | Upstream files | Portable implementation |
 |---|---|

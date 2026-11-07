@@ -1,6 +1,6 @@
 {
   "name": "IMU-Library-by-TT",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Portable INAV 9-derived six-axis IMU library for ESP32 and STM32",
   "license": "GPL-3.0-or-later",
   "frameworks": ["arduino"],

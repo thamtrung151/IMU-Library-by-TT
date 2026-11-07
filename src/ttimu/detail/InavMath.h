@@ -13,8 +13,9 @@ constexpr float M_PIf = 3.14159265358979323846f;
 constexpr float Gravity = 980.665f;
 constexpr unsigned MAX_KALMAN_WINDOW_SIZE = 64;
 constexpr float VARIANCE_SCALE = 0.67f;
-template<class T> inline T sq(T x) { return x * x; }
-inline float radians(float x) { return x * (M_PIf / 180.0f); }
+// Prefix helpers so Arduino's sq()/radians() macros can stay untouched.
+template<class T> inline T inavSquare(T x) { return x * x; }
+inline float inavRadians(float x) { return x * (M_PIf / 180.0f); }
 typedef union { float v[3]; struct { float x, y, z; }; } fpVector3_t;
 struct fpQuaternion_t { float q0, q1, q2, q3; };
 struct stdev_t { float m_oldM, m_newM, m_oldS, m_newS; unsigned m_n; };

@@ -39,7 +39,7 @@ Mặc định: gyro anti-alias 250 Hz, gyro main PT1 60 Hz, acc biquad 15 Hz, gy
 - Quaternion Hamilton `(w,x,y,z)` giữ biểu diễn nội bộ INAV. Yaw Euler dùng dấu âm so với phép atan2 quaternion thông thường. Khi tích hợp NED/ENU hoặc robotics khác, xác nhận basis/sign trước.
 - Gyro `rad/s`, acc `m/s²` gồm trọng lực, nhiệt `°C`; timestamp `µs` tương đối từ sample đầu và mở rộng wrap `micros()` 32 bit.
 - Mặc định tự hiệu chuẩn gyro mỗi boot. Calibration của một chip không dùng lại cho chip khác dù cùng model.
-- `Calibration` cho phép nạp offset/gain acc đã đo. Công cụ tự hiệu chuẩn acc sáu tư thế chưa có trong v0.1.0; hệ số mặc định là offset 0, gain 1.
+- `Calibration` cho phép nạp offset/gain acc đã đo. Công cụ tự hiệu chuẩn acc sáu tư thế chưa có trong v0.1.1; hệ số mặc định là offset 0, gain 1.
 - Muốn dùng gyro bias đã lưu, đặt `startupCalibration=false`, gọi `begin()`, sau đó `setCalibration(saved)`. Cho tới khi nạp được hệ số đúng model/version, `ready()` vẫn false. NVS/flash và kiểm tra CRC của bản lưu do ứng dụng quản lý.
 
 ## ESP-IDF / STM32 HAL

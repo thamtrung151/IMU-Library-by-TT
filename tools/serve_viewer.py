@@ -4,12 +4,16 @@ from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 import mimetypes
+import webbrowser
 
 mimetypes.add_type('text/javascript','.mjs')
-parser=argparse.ArgumentParser();parser.add_argument('--port',type=int,default=8080);args=parser.parse_args()
+parser=argparse.ArgumentParser();parser.add_argument('--port',type=int,default=8080)
+parser.add_argument('--open',action='store_true',help='Open the viewer in your default browser (Chrome/Edge required for USB).')
+args=parser.parse_args()
 directory=Path(__file__).resolve().parents[1]/'viewer'
 server=ThreadingHTTPServer(('127.0.0.1',args.port),partial(SimpleHTTPRequestHandler,directory=str(directory)))
 print(f'IMU Library by TT: http://localhost:{server.server_port}',flush=True)
+if args.open: webbrowser.open(f'http://localhost:{server.server_port}')
 try: server.serve_forever()
 except KeyboardInterrupt: pass
 finally: server.server_close()

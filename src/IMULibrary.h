@@ -5,7 +5,7 @@
 #include "ttimu/detail/InavCore.h"
 
 namespace ttimu {
-constexpr const char* Version = "0.1.0";
+constexpr const char* Version = "0.1.1";
 struct Vector3 { float x,y,z; Vector3(float a=0,float b=0,float c=0):x(a),y(b),z(c){} };
 struct Quaternion { float w,x,y,z; Quaternion(float a=1,float b=0,float c=0,float d=0):w(a),x(b),y(c),z(d){} };
 enum class Sensor : uint8_t { Auto, MPU6050, MPU6500, ICM42605, ICM42688 };

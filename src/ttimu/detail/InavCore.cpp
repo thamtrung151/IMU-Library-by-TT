@@ -60,7 +60,7 @@ void InavCore::integrate(float dt, const fpVector3_t& gyroRad,
         // Compute and apply integral feedback if enabled
         if (imuRuntimeConfig.dcm_ki_acc > 0.0f) {
             // Stop integrating if spinning beyond the certain limit
-            if (spin_rate_sq < sq(DEGREES_TO_RADIANS(SPIN_RATE_LIMIT))) {
+            if (spin_rate_sq < inavSquare(DEGREES_TO_RADIANS(SPIN_RATE_LIMIT))) {
                 fpVector3_t vTmp;
 
                 // integral error scaled by Ki
@@ -133,7 +133,7 @@ void InavCore::step(const fpVector3_t& gyroRad, const fpVector3_t& accCmss,
     weight *= (!armed && uptimeMs < 20000) ? 10.0f : 1.0f;
     if (armed) {
         const float rate = fast_fsqrtf(rotationSq) / 1.001f;
-        weight *= scaleRangef(constrainf(rate,radians(10),radians(20)),radians(10),radians(20),1,0);
+        weight *= scaleRangef(constrainf(rate,inavRadians(10),inavRadians(20)),inavRadians(10),inavRadians(20),1,0);
     }
     lastAccWeight = weight;
     integrate(dt,gyroRad,weight > 0.001f ? &accCmss : nullptr,weight);
