@@ -42,6 +42,7 @@ bool IMU::initialize(Sensor s,const Config& c) {
     }
     sensor_=s; config_=c; calibration_=Calibration(); calibration_.sensor=s;
     data_=Data(); diagnostics_=Diagnostics(); core_.reset();
+    referenceInverse_={1,0,0,0};referenceActive_=zeroAfterCalibration_=false;
     elapsedUs_=lastFusionUs_=calibrationStartUs_=0;
     lastRawTimestamp_=lastPoll_=0; haveTimestamp_=haveFusion_=gyroCalibrated_=attitudeInitialized_=false; armed_=false;
     state_=State::Calibrating; resetFilters(); startCalibration();
@@ -150,8 +151,10 @@ bool IMU::update() {
     return feed(raw);
 }
 
-void IMU::startCalibration() {
+void IMU::startCalibration(bool zeroAllAfter) {
     if(sensor_==Sensor::Auto || state_==State::Error)return;
+    if(attitudeInitialized_ || referenceActive_)++data_.referenceId;
+    referenceInverse_={1,0,0,0};referenceActive_=false;zeroAfterCalibration_=zeroAllAfter;
     calibrationCount_=0; calibrationStartUs_=elapsedUs_; gyroCalibrated_=false;
     for(unsigned a=0;a<3;++a) {gyroSums_[a]=0;devClear(&gyroVariance_[a]);calibration_.gyroBiasCounts[a]=0;}
     state_=State::Calibrating; data_.ready=false; diagnostics_.calibrationProgress=0;
@@ -249,11 +252,12 @@ bool IMU::feed(const RawSample& raw) {
 }
 
 void IMU::publish(const fpVector3_t& g,const fpVector3_t& a,const RawSample& raw,uint64_t time) {
-    data_.quaternion={core_.orientation.q0,core_.orientation.q1,core_.orientation.q2,core_.orientation.q3};
-    data_.roll=config_.eulerRollSign*atan2_approx(core_.rMat[2][1],core_.rMat[2][2])*(180/M_PIf);
-    data_.pitch=(0.5f*M_PIf-acos_approx(constrainf(-core_.rMat[2][0],-1,1)))*(180/M_PIf);
-    data_.yaw=-atan2_approx(core_.rMat[1][0],core_.rMat[0][0])*(180/M_PIf);
-    if(data_.yaw<0)data_.yaw+=360;
+    if(zeroAfterCalibration_ && gyroCalibrated_ && attitudeInitialized_ && !recoveredLastUpdate_) {
+        quaternionConjugate(&referenceInverse_,&core_.orientation);
+        quaternionNormalize(&referenceInverse_,&referenceInverse_);
+        referenceActive_=true;zeroAfterCalibration_=false;++data_.referenceId;
+    }
+    publishAttitude();
     data_.gyro.x=g.x;data_.gyro.y=g.y;data_.gyro.z=g.z;
     data_.accel.x=a.x*0.01f;data_.accel.y=a.y*0.01f;data_.accel.z=a.z*0.01f;
     data_.temperatureC=raw.temperatureC;data_.timestampUs=time;data_.sequence=diagnostics_.updates;
@@ -261,7 +265,38 @@ void IMU::publish(const fpVector3_t& g,const fpVector3_t& a,const RawSample& raw
     data_.absoluteHeadingValid=false;
 }
 
-void IMU::zeroYaw() {if(!attitudeInitialized_)return;core_.zeroYaw();data_.yaw=0;data_.quaternion={core_.orientation.q0,core_.orientation.q1,core_.orientation.q2,core_.orientation.q3};}
+void IMU::publishAttitude() {
+    fpQuaternion_t q=core_.orientation;
+    if(referenceActive_) {
+        quaternionMultiply(&q,&referenceInverse_,&core_.orientation);
+        quaternionNormalize(&q,&q);
+    }
+    data_.quaternion={q.q0,q.q1,q.q2,q.q3};
+    const float r21=2*(q.q2*q.q3+q.q0*q.q1),r22=1-2*(q.q1*q.q1+q.q2*q.q2);
+    const float r20=2*(q.q1*q.q3-q.q0*q.q2),r10=2*(q.q1*q.q2+q.q0*q.q3),r00=1-2*(q.q2*q.q2+q.q3*q.q3);
+    data_.roll=config_.eulerRollSign*atan2_approx(r21,r22)*(180/M_PIf);
+    data_.pitch=(0.5f*M_PIf-acos_approx(constrainf(-r20,-1,1)))*(180/M_PIf);
+    data_.yaw=-atan2_approx(r10,r00)*(180/M_PIf);
+    if(data_.yaw<0)data_.yaw+=360;
+    if(data_.yaw>=360.0f-1e-5f || std::fabs(data_.yaw)<1e-5f)data_.yaw=0;
+}
+
+bool IMU::zeroAttitude() {
+    if(!data_.ready)return false;
+    quaternionConjugate(&referenceInverse_,&core_.orientation);
+    quaternionNormalize(&referenceInverse_,&referenceInverse_);
+    referenceActive_=true;++data_.referenceId;publishAttitude();return true;
+}
+void IMU::zeroYaw() {
+    if(!data_.ready)return;
+    // Rotate the output reference only; keep gravity fusion and its integral intact.
+    const Quaternion& q=data_.quaternion;
+    const float angle=-atan2_approx(2*(q.x*q.y+q.w*q.z),1-2*(q.y*q.y+q.z*q.z));
+    const fpQuaternion_t offset={cos_approx(angle*.5f),0,0,sin_approx(angle*.5f)};
+    quaternionMultiply(&referenceInverse_,&offset,&referenceInverse_);
+    quaternionNormalize(&referenceInverse_,&referenceInverse_);
+    referenceActive_=true;++data_.referenceId;publishAttitude();
+}
 void IMU::setRateSetpoint(const Vector3& v) {
     if(std::isfinite(v.x)&&std::isfinite(v.y)&&std::isfinite(v.z)) {kalman_[0].setpoint=v.x;kalman_[1].setpoint=v.y;kalman_[2].setpoint=v.z;}
 }

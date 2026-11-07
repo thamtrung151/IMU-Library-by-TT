@@ -13,7 +13,7 @@ from urllib.request import urlopen
 import webbrowser
 
 DIRECTORY = Path(__file__).resolve().parents[1] / 'viewer'
-CACHE_MARKER = b'ttimu-ui-20261108-2'
+CACHE_MARKER = b'ttimu-ui-20261108-4'
 INFO_PATH = '/__ttimu__/info'
 SERVER_VERSION = 2
 ROOT_ID = hashlib.sha256(os.path.normcase(str(DIRECTORY)).encode()).hexdigest()[:16]

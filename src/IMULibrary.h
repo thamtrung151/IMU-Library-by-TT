@@ -60,7 +60,7 @@ struct Calibration {
 };
 
 struct Data {
-    Quaternion quaternion; // Native INAV quaternion, Hamilton w,x,y,z.
+    Quaternion quaternion; // Hamilton w,x,y,z, relative to the selected zero pose.
     float roll = 0, pitch = 0, yaw = 0; // Degrees; native INAV signs except configured eulerRollSign.
     Vector3 gyro;  // rad/s, calibrated and filtered body rates
     Vector3 accel; // m/s^2 including gravity, calibrated/filtered
@@ -69,6 +69,7 @@ struct Data {
     uint32_t sequence = 0;
     bool ready = false;
     bool absoluteHeadingValid = false;
+    uint32_t referenceId = 0; // Changes when the output zero reference changes.
 };
 
 struct Diagnostics {
@@ -88,8 +89,10 @@ public:
     // Portable raw replay / custom acquisition. Feed unique samples at configured rate.
     bool beginRaw(Sensor sensor, const Config& config = Config());
     bool feed(const RawSample& sample);
-    void startCalibration();
+    void startCalibration(bool zeroAllAfter = false);
+    bool zeroAttitude(); // Current ready pose -> identity quaternion and zero Euler angles.
     void zeroYaw();
+    Quaternion nativeQuaternion() const { return {core_.orientation.q0,core_.orientation.q1,core_.orientation.q2,core_.orientation.q3}; }
     void setArmed(bool armed) { armed_ = armed; }
     void setRateSetpoint(const Vector3& degreesPerSecond);
     bool setCalibration(const Calibration& calibration);
@@ -110,6 +113,7 @@ private:
     bool initialize(Sensor sensor, const Config& config);
     bool calibrateGyro(const RawSample& sample, uint64_t elapsedUs);
     void resetFilters();
+    void publishAttitude();
     void publish(const detail::fpVector3_t& gyro, const detail::fpVector3_t& acc, const RawSample& raw, uint64_t elapsedUs);
     RegisterBus* bus_ = nullptr;
     Sensor sensor_ = Sensor::Auto;
@@ -120,6 +124,7 @@ private:
     Data data_;
     Diagnostics diagnostics_;
     detail::InavCore core_;
+    detail::fpQuaternion_t referenceInverse_ = {1,0,0,0};
     detail::pt1Filter_t antiAlias_[3] = {}, gyroLpf_[3] = {};
     detail::biquadFilter_t accelLpf_[3] = {};
     detail::kalman_t kalman_[3] = {};
@@ -129,5 +134,6 @@ private:
     uint64_t elapsedUs_ = 0, lastFusionUs_ = 0, calibrationStartUs_ = 0;
     bool haveTimestamp_ = false, haveFusion_ = false, gyroCalibrated_ = false, armed_ = false, recoveredLastUpdate_ = false;
     bool attitudeInitialized_ = false;
+    bool referenceActive_ = false, zeroAfterCalibration_ = false;
 };
 }

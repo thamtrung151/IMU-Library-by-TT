@@ -2,12 +2,22 @@
 
 ## 0.1.4 — 2026-11-08
 
+- Add firmware `zeroAttitude()` and the monitor's `ZERO_ALL` command. The viewer's
+  zero button now zeros all three angles; CALIBRATE requests gyro calibration
+  followed by a zero pose, captured only after valid attitude is ready.
+- Keep the gravity AHRS/integral/body sensor vectors intact when zeroing. Publish
+  a relative quaternion/Euler pose; expose `nativeQuaternion()` for gravity-frame
+  consumers. Append `reference_id` to CSV so charts break/reset accumulated turns
+  at reference changes. A firmware update is required for these new commands.
+- Default angle numbers/charts to standard ranges (yaw 0–360, roll ±180 degrees).
+  Make continuous, accumulated turns an explicit option; never alter recorded CSV.
 - Fix mixed old CSS/JS with new HTML: content-derived asset URLs, no-store HTTP
   responses and a cache-safe launch URL. Cover transitive telemetry module imports.
 - Reuse only this checkout's recognized viewer server; use a free port when an
   old/unrelated server occupies 8080. Windows uses exclusive port ownership.
 - Add HTTP/startup tests and reproduce an upgrade in a browser with old CSS/JS
-  explicitly cached, without clearing the cache. No MCU behavior change or reflash required.
+  explicitly cached, without clearing the cache. Add tilted-zero/motion/recalibration
+  regressions without changing native INAV fusion math.
 
 ## 0.1.3 — 2026-11-08
 

@@ -30,7 +30,7 @@ public:
         serial_.print("# IMU Library by TT v");serial_.print(Version);
         serial_.print(" / ");serial_.println(IMU::sensorName(imu_.sensor()));
         serial_.println("# Keep the IMU still for startup calibration (about 2 seconds).");
-        serial_.println("t_us,roll,pitch,yaw,gx,gy,gz,ax,ay,az,temp,ready,dt_us,gaps,calib,retries,late,qw,qx,qy,qz,ix,iy,iz,acc_weight,roll_sign");
+        serial_.println("t_us,roll,pitch,yaw,gx,gy,gz,ax,ay,az,temp,ready,dt_us,gaps,calib,retries,late,qw,qx,qy,qz,ix,iy,iz,acc_weight,roll_sign,reference_id");
     }
     bool update(){
         if(offset_<row_.length){
@@ -43,7 +43,8 @@ public:
             char ch=static_cast<char>(serial_.read());
             if(ch=='\n'){
                 command_[commandLength_]=0;
-                if(!strcmp(command_,"CALIBRATE"))imu_.startCalibration();
+                if(!strcmp(command_,"CALIBRATE"))imu_.startCalibration(true);
+                else if(!strcmp(command_,"ZERO_ALL"))imu_.zeroAttitude();
                 else if(!strcmp(command_,"ZERO_YAW"))imu_.zeroYaw();
                 commandLength_=0;
             }else if(ch!='\r'&&commandLength_<sizeof(command_)-1)command_[commandLength_++]=ch;
@@ -62,7 +63,7 @@ public:
         row_.field(s.calibrationProgress,3);row_.fieldUnsigned(s.calibrationRetries);row_.fieldUnsigned(s.lateSamples);
         row_.field(d.quaternion.w,6);row_.field(d.quaternion.x,6);row_.field(d.quaternion.y,6);row_.field(d.quaternion.z,6);
         row_.field(s.gyroDriftCorrection.x,7);row_.field(s.gyroDriftCorrection.y,7);row_.field(s.gyroDriftCorrection.z,7);
-        row_.field(s.accelWeight,4);row_.field(static_cast<float>(imu_.config().eulerRollSign),0);row_.write('\n');
+        row_.field(s.accelWeight,4);row_.field(static_cast<float>(imu_.config().eulerRollSign),0);row_.fieldUnsigned(d.referenceId);row_.write('\n');
         if(row_.overflow)row_.clear();
         return updated;
     }

@@ -2,7 +2,7 @@
 
 Thư viện C++ xử lý IMU 6 trục cho **ESP32 / STM32**, với lõi tính góc port từ **INAV 9.0.1**.
 
-**v0.1.4 — bản thử nghiệm:** sửa lỗi giao diện mới tải lẫn CSS/JS cũ; không cần nạp lại firmware v0.1.3. Có 7 đồ thị cùng lúc, trạng thái/nhiệt độ ở đầu trang; profile FC đã đổi dấu roll từ v0.1.3. Kiểm tra dài hạn trên bo còn chờ đo.
+**v0.1.4 — bản thử nghiệm:** đặt cả ba góc về 0, tích hợp vào hiệu chuẩn lại; sửa cache giao diện và hiển thị cộng vòng. Nạp firmware mới để dùng chức năng đặt mốc mới. Kiểm tra dài hạn trên bo còn chờ đo.
 
 ## Có gì?
 
@@ -82,6 +82,8 @@ python tools/serve_viewer.py
 ```
 
 Trên Windows nhấp đúp **Start Viewer.cmd**, dùng trang tự mở bằng Chrome/Edge → **Kết nối USB**, baud `921600`. Mặc định là localhost:8080; nếu cổng đó đang có server cũ, launcher tự chọn cổng trống và mở đúng URL. CSS/JS tự đổi mã theo nội dung để tránh cache cũ. Góc lớn và sáu đồ thị gyro/acc hiện cùng lúc; rê chuột đọc cùng một thời điểm, bấm nhãn góc để ẩn/hiện đường. Nút **Mô phỏng** luôn có nhãn riêng.
+
+**Góc về 0** lấy tư thế hiện tại làm mốc cho roll/pitch/yaw. **Hiệu chuẩn lại**: giữ bo đứng yên khoảng 2 giây, hiệu chuẩn gyro xong sẽ đặt cả ba góc về 0. Cần firmware v0.1.4 trở lên; mốc chỉ giữ đến khi reset/hiệu chuẩn lại. Mặc định **Góc chuẩn** hiển thị yaw `[0,360)`, roll `±180°`; chọn **Liên tục** khi muốn xem số vòng quay.
 
 Các cấu hình PlatformIO STM32 kèm repo bật USB CDC cho BlackPill; nếu dùng USB–UART ngoài, chọn Serial và pin phù hợp bo.
 

@@ -10,8 +10,11 @@
 | `update()` | Đọc theo lịch, không chờ vòng lặp; true khi có snapshot mới |
 | `ready()` | Dữ liệu hiện tại đã qua hiệu chuẩn và không bị lỗi đọc/gap vừa phát hiện |
 | `data()` | Tham chiếu tới snapshot mới nhất; sao chép nếu cần giữ lâu |
-| `startCalibration()` | Hiệu chuẩn lại gyro; giữ bo yên |
-| `zeroYaw()` | Đổi mốc yaw hiện tại về 0, cập nhật cả quaternion |
+| `startCalibration()` | Hiệu chuẩn lại gyro, khôi phục mốc theo trọng lực; giữ bo yên |
+| `startCalibration(true)` | Hiệu chuẩn lại gyro rồi lấy tư thế đã ổn định làm mốc 0 cho cả ba góc |
+| `zeroAttitude()` | Lấy tư thế hiện tại làm mốc 0 cho cả ba góc; trả false nếu chưa ready |
+| `zeroYaw()` | Chỉ đặt yaw về 0, giữ roll/pitch theo mốc hiện có |
+| `nativeQuaternion()` | Quaternion gốc theo trọng lực, trước phép đặt mốc đầu ra |
 | `diagnostics()` / `error()` | Xem retry, mất mẫu, chu kỳ thực và lỗi |
 | `calibration()` / `setCalibration()` | Lưu/nạp hệ số qua flash/NVS do ứng dụng quản lý |
 
@@ -36,7 +39,7 @@ Mặc định: gyro anti-alias 250 Hz, gyro main PT1 60 Hz, acc biquad 15 Hz, gy
 ## Output và hiệu chuẩn
 
 - Euler theo dấu của INAV MSP, nhưng là float: roll/pitch theo độ, yaw `[0,360)`.
-- Quaternion Hamilton `(w,x,y,z)` giữ biểu diễn nội bộ INAV. Yaw Euler dùng dấu âm so với phép atan2 quaternion thông thường. Khi tích hợp NED/ENU hoặc robotics khác, xác nhận basis/sign trước.
+- Quaternion Hamilton `(w,x,y,z)` dùng quy ước INAV; sau khi đặt mốc, `data().quaternion` là tư thế tương đối `conjugate(q_mốc) * q_native`. Euler được tính từ cùng quaternion này, có áp dụng `eulerRollSign`. Yaw Euler dùng dấu âm so với phép atan2 quaternion thông thường. Khi cần tư thế theo trọng lực, dùng `nativeQuaternion()`; gyro/acc vẫn trong hệ body. Xác nhận basis/sign khi tích hợp NED/ENU hoặc robotics khác.
 - Gyro `rad/s`, acc `m/s²` gồm trọng lực, nhiệt `°C`; timestamp `µs` tương đối từ sample đầu và mở rộng wrap `micros()` 32 bit.
 - Mặc định tự hiệu chuẩn gyro mỗi boot. Calibration của một chip không dùng lại cho chip khác dù cùng model.
 - `ready()` chỉ true sau khi gyro đã hiệu chuẩn **và** tư thế ban đầu được dựng từ gia tốc hợp lệ (0,8–1,2 g). Khi chờ gravity, `state()` là `WaitingForAttitude`. Việc này không chứng minh bo đang đứng yên nếu có gia tốc ngoài; vẫn phải giữ yên lúc calib.
@@ -47,7 +50,11 @@ Mặc định: gyro anti-alias 250 Hz, gyro main PT1 60 Hz, acc biquad 15 Hz, gy
 
 CSV v0.1.2 thêm `qw,qx,qy,qz,ix,iy,iz,acc_weight`; v0.1.3 thêm `roll_sign` ở cuối. `i*` là hiệu chỉnh tích phân nói trên, không phải bias raw hoặc tốc độ quay thật. Viewer đọc được 17/25/26 cột cũ và mới. Ctrl+F5 trang HTML sau khi cập nhật.
 
-`Config::eulerRollSign` mặc định +1; profile FC tự chế dùng -1 theo xác nhận người dùng. Nó chỉ đổi `data().roll` và roll trong CSV; pitch/yaw, quaternion và gyro/acc theo hệ body thuận giữ nguyên. Không lật riêng một trục sensor vì sẽ làm sai hệ tọa độ. Khi dùng tốc độ phản hồi theo dấu roll đã chọn, lấy `imu.rollRateRadS()` (thành phần gyro X đã áp dấu, đơn vị rad/s; không phải đạo hàm Euler tổng quát khi nghiêng lớn). Khi dựng roll native từ quaternion, nhân với `roll_sign` để so với cột roll.
+v0.1.4 thêm `reference_id` (27 cột), thay đổi khi đổi mốc góc; đồ thị ngắt đường và bắt đầu lại giá trị liên tục ở mốc đó. Viewer vẫn đọc log 17/25/26 cột. **Góc chuẩn** là mặc định: yaw `[0,360)`, roll `[-180,180)`; **Liên tục** cộng vòng, ví dụ 369,25° cùng hướng với 9,25°. CSV luôn giữ giá trị firmware, không bị đổi theo chế độ hiển thị.
+
+Nút **Góc về 0** gửi `ZERO_ALL` → `zeroAttitude()`. Nút **Hiệu chuẩn lại** gửi `CALIBRATE` → `startCalibration(true)`: chỉ chụp mốc khi gyro đã hiệu chuẩn và gravity hợp lệ. Giữ bo yên tại tư thế muốn lấy làm mốc. Phép đặt mốc không sửa bias hay align, không ép trạng thái AHRS thành nằm phẳng; phản hồi trọng lực tiếp tục hoạt động trong hệ gốc. Nó không loại bỏ yaw drift. Mốc nằm trong RAM, mất khi reset; `startCalibration()` không truyền true bỏ mốc cũ và dựng lại tilt theo trọng lực. Firmware cũ không hỗ trợ `ZERO_ALL`.
+
+`Config::eulerRollSign` mặc định +1; profile FC tự chế dùng -1 theo xác nhận người dùng. Riêng tùy chọn dấu này chỉ đổi `data().roll` và roll trong CSV; không đổi pitch/yaw, quaternion hay gyro/acc. Không lật riêng một trục sensor vì sẽ làm sai hệ tọa độ. Khi dùng tốc độ phản hồi theo dấu roll đã chọn, lấy `imu.rollRateRadS()` (thành phần gyro X đã áp dấu, đơn vị rad/s; không phải đạo hàm Euler tổng quát khi nghiêng lớn). Khi dựng roll từ quaternion đầu ra, nhân với `roll_sign` để so với cột roll.
 
 Không có tự hiệu chuẩn sau 150 giây hoặc chu kỳ cố định. Hiệu chuẩn được yêu cầu lúc `begin()`, qua `startCalibration()` hoặc lệnh `CALIBRATE` của monitor. Mốc 150 giây trong test PC là lần gọi chủ động của bài test; khi đang chạy, thư viện không tự đặt lại bias hay mốc yaw theo thời gian đó.
 

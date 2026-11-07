@@ -43,6 +43,7 @@ driver/scheduler/default filter configuration or every recovery branch.
 | Seed initial tilt from gravity after gyro calibration, including inverted starts | Hardware logs exposed false large rotations from an identity quaternion against negative Z; do not accumulate pre-calibration integral feedback |
 | Ready requires gyro and initial tilt; 0.8–1.2 g initial magnitude guard | Avoid advertising a valid attitude before orientation can be initialized |
 | Optional Euler roll sign, -1 for this FC profile | Match the user's control convention without reflecting the right-handed sensor frame or changing native quaternion/gyro/acc; CSV records the sign |
+| Optional output zero quaternion, separate from the native gravity AHRS | Zero all output angles at any ready pose without corrupting gravity feedback; calibration can request this only after valid startup. Native pose remains available explicitly |
 
 Startup policy lives in `InavStartup.cpp`, outside generated INAV math/update.
 This is an explicit portable-profile change, not a claim that the original INAV

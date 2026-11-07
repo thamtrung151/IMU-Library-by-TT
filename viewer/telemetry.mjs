@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 const LEGACY_COLUMNS = ['t_us','roll','pitch','yaw','gx','gy','gz','ax','ay','az','temp','ready','dt_us','gaps','calib','retries','late'];
 const DIAGNOSTIC_COLUMNS = [...LEGACY_COLUMNS,'qw','qx','qy','qz','ix','iy','iz','acc_weight'];
-export const COLUMNS = [...DIAGNOSTIC_COLUMNS,'roll_sign'];
+const ROLL_COLUMNS = [...DIAGNOSTIC_COLUMNS,'roll_sign'];
+export const COLUMNS = [...ROLL_COLUMNS,'reference_id'];
 const REQUIRED = ['t_us','roll','pitch','yaw'];
 
 export class TelemetryParser {
@@ -32,7 +33,7 @@ export class TelemetryParser {
       return;
     }
     // The example emits a header once; reconnects can begin in the middle of a stream.
-    const header = this.header ?? (fields.length === COLUMNS.length ? COLUMNS : fields.length === DIAGNOSTIC_COLUMNS.length ? DIAGNOSTIC_COLUMNS : fields.length === LEGACY_COLUMNS.length ? LEGACY_COLUMNS : null);
+    const header = this.header ?? (fields.length === COLUMNS.length ? COLUMNS : fields.length === ROLL_COLUMNS.length ? ROLL_COLUMNS : fields.length === DIAGNOSTIC_COLUMNS.length ? DIAGNOSTIC_COLUMNS : fields.length === LEGACY_COLUMNS.length ? LEGACY_COLUMNS : null);
     if (!header || fields.length !== header.length) { this.errors++; return; }
     const sample = {};
     for (let i = 0; i < header.length; i++) {
@@ -44,15 +45,19 @@ export class TelemetryParser {
     if (!REQUIRED.every(k => Number.isFinite(sample[k])) || !Number.isSafeInteger(sample.t_us) || sample.t_us < 0) { this.errors++; return; }
     if (sample.ready !== undefined && sample.ready !== null && sample.ready !== 0 && sample.ready !== 1) { this.errors++; return; }
     if (sample.roll_sign !== undefined && sample.roll_sign !== null && sample.roll_sign !== 1 && sample.roll_sign !== -1) { this.errors++; return; }
+    if (sample.reference_id != null && (!Number.isInteger(sample.reference_id) || sample.reference_id < 0 || sample.reference_id > 0xffffffff)) { this.errors++; return; }
     this.onSample(sample);
   }
 }
 
 export class TraceBuffer {
   constructor(capacity = 10000) { this.capacity = capacity; this.clear(); }
-  clear() { this.points = new Array(this.capacity); this.start = 0; this.length = 0; this.lastYaw = null; this.yawUnwrapped = 0; this.lastRoll = null; this.rollUnwrapped = 0; this.lastTime = null; }
+  clear() { this.points = new Array(this.capacity); this.start = 0; this.length = 0; this.lastYaw = null; this.yawUnwrapped = 0; this.lastRoll = null; this.rollUnwrapped = 0; this.lastTime = null; this.lastReference = null; this.lastReady = null; }
   add(sample) {
     if (this.lastTime !== null && sample.t_us < this.lastTime) this.clear(); // Device reset or a new CSV run.
+    const referenceChanged = (this.lastReference !== null && sample.reference_id != null && sample.reference_id !== this.lastReference) || (this.lastReady === 0 && sample.ready === 1);
+    if (referenceChanged) { this.lastYaw = null; this.lastRoll = null; }
+    this.lastReference = sample.reference_id ?? null; this.lastReady = sample.ready ?? null;
     let yaw = sample.yaw;
     if (this.lastYaw !== null) {
       let change = sample.yaw - this.lastYaw;
@@ -65,7 +70,7 @@ export class TraceBuffer {
       this.rollUnwrapped=this.lastRoll===null?roll:this.rollUnwrapped+((roll-this.lastRoll+180)%360+360)%360-180;
       this.lastRoll=roll;
     }
-    const point = {...sample, yaw_unwrapped: this.yawUnwrapped, roll_unwrapped:Number.isFinite(roll)?this.rollUnwrapped:undefined};
+    const point = {...sample, yaw_unwrapped: this.yawUnwrapped, roll_unwrapped:Number.isFinite(roll)?this.rollUnwrapped:undefined, reference_changed:referenceChanged};
     const index = (this.start + this.length) % this.capacity;
     this.points[index] = point;
     if (this.length < this.capacity) this.length++; else this.start = (this.start + 1) % this.capacity;
@@ -75,3 +80,11 @@ export class TraceBuffer {
 }
 
 export function csvRow(s) { return COLUMNS.map(k => Number.isFinite(s[k]) ? s[k] : '').join(','); }
+
+// Presentation only. Never change the stored samples or exported firmware CSV.
+export function displayValue(sample, key, continuous = false) {
+  if (!sample || !Number.isFinite(sample[key])) return undefined;
+  if (key === 'yaw') return continuous ? sample.yaw_unwrapped ?? sample.yaw : ((sample.yaw % 360) + 360) % 360;
+  if (key === 'roll') return continuous ? sample.roll_unwrapped ?? sample.roll : (((sample.roll + 180) % 360) + 360) % 360 - 180;
+  return sample[key];
+}

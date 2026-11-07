@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import {TelemetryParser, TraceBuffer, COLUMNS, csvRow} from './telemetry.mjs?v=ttimu-ui-20261108-2';
+import {TelemetryParser, TraceBuffer, COLUMNS, csvRow, displayValue} from './telemetry.mjs?v=ttimu-ui-20261108-4';
 
 const $=id=>document.getElementById(id), buffer=new TraceBuffer(10000);
 const colors=['#2f80ed','#009c86','#c77912'], angleKeys=['roll','pitch','yaw'];
-let visible=[true,true,true],paused=false,frozen=[],hoverFraction=null,selected=null,lastView=null;
+let visible=[true,true,true],paused=false,frozen=[],hoverFraction=null,selected=null,lastView=null,continuousAngles=false;
 let source='none',port=null,reader=null,writer=null,connecting=false,demoTimer=null;
 let latest=null,lastReceived=0,total=0,rateCount=0,rateStart=performance.now(),frequency=0;
 let recording=false,capture=[],toastTimer,dirty=true,lastPaint=0;
@@ -15,7 +15,7 @@ const parser=new TelemetryParser(receive,info=>{
 function toast(message){$('toast').textContent=message;$('toast').classList.add('visible');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').classList.remove('visible'),4500);}
 function controls(){
   $('connect').disabled=connecting;$('connect').textContent=port?'Ngắt USB':connecting?'Đang kết nối…':'↔ Kết nối USB';
-  $('baud').disabled=Boolean(port)||connecting;$('calibrate').disabled=$('zero').disabled=!writer;
+  $('baud').disabled=Boolean(port)||connecting;$('calibrate').disabled=!writer;$('zero').disabled=!writer||latest?.ready!==1;
   $('record').disabled=!(source==='demo'||source==='serial'&&port)||connecting;
   $('import').disabled=$('demo').disabled=Boolean(port)||connecting;
 }
@@ -62,8 +62,9 @@ async function connect(){
 }
 async function command(text){
   if(!writer)return;try{await writer.write(new TextEncoder().encode(text+'\n'));
-    if(text==='CALIBRATE')toast('Đã gửi hiệu chuẩn. Giữ bo đứng yên.');
-    else{clearData();toast('Đã đặt mốc yaw.');}
+    clearData();
+    if(text==='CALIBRATE')toast('Giữ bo đứng yên. Hiệu chuẩn xong sẽ đặt cả ba góc về 0.');
+    else toast('Đã gửi lệnh đặt cả ba góc về 0.');
   }catch(error){toast('Không gửi được lệnh: '+error.message);}
 }
 function download(text,name){const url=URL.createObjectURL(new Blob([text],{type:'text/csv;charset=utf-8'}));const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
@@ -85,7 +86,7 @@ async function importFile(file){
 function renderLegend(){
   $('legend').replaceChildren();angleKeys.forEach((key,i)=>{
     const b=document.createElement('button');b.style.setProperty('--channel',colors[i]);b.setAttribute('aria-pressed','true');
-    b.setAttribute('aria-label',`Hiện hoặc ẩn ${key}`);b.title='Góc liên tục, cùng giá trị trên đồ thị';
+    b.setAttribute('aria-label',`Hiện hoặc ẩn ${key}`);b.title='Số cùng giá trị trên đồ thị';
     const dot=document.createElement('i'),label=document.createElement('span'),value=document.createElement('strong');
     label.textContent=key[0].toUpperCase()+key.slice(1);label.prepend(dot);value.id=key;value.textContent='—';b.append(label,value);
     b.onclick=()=>{visible[i]=!visible[i];b.classList.toggle('hidden',!visible[i]);b.setAttribute('aria-pressed',String(visible[i]));dirty=true;};$('legend').append(b);
@@ -93,10 +94,7 @@ function renderLegend(){
 }
 const format=(v,digits=1)=>Number.isFinite(v)?v.toFixed(digits):'—';
 function valueFor(p,key){
-  if(!p)return undefined;
-  if(key==='roll')return p.roll_unwrapped??p.roll;
-  if(key==='yaw')return p.yaw_unwrapped??p.yaw;
-  return p[key];
+  return displayValue(p,key,continuousAngles);
 }
 function updateReadings(){
   const point=selected??(paused?frozen.at(-1):latest);
@@ -165,7 +163,8 @@ function drawChart(plot,view){
   for(let i=0;i<plot.keys.length;i++){
     if(!enabled(i))continue;ctx.strokeStyle=plot.colors[i];ctx.lineWidth=plot.large?1.6:1.2;ctx.beginPath();let previous=null;
     for(const p of view.points){const v=valueFor(p,plot.keys[i]);if(!Number.isFinite(v)){previous=null;continue;}
-      const x=xOf(p),y=yOf(v);if(previous&&p.t_us-previous.t_us<view.gapUs)ctx.lineTo(x,y);else ctx.moveTo(x,y);previous=p;
+      const wrapJump=previous&&plot.large&&!continuousAngles&&(plot.keys[i]==='roll'||plot.keys[i]==='yaw')&&Math.abs(v-valueFor(previous,plot.keys[i]))>180;
+      const x=xOf(p),y=yOf(v);if(previous&&p.t_us-previous.t_us<view.gapUs&&!wrapJump&&(!plot.large||!p.reference_changed))ctx.lineTo(x,y);else ctx.moveTo(x,y);previous=p;
     }ctx.stroke();
   }
   if(selected){const x=xOf(selected);ctx.strokeStyle='#1118';ctx.setLineDash([3,3]);ctx.beginPath();ctx.moveTo(x,top);ctx.lineTo(x,top+h);ctx.stroke();ctx.setLineDash([]);
@@ -175,9 +174,10 @@ function drawChart(plot,view){
 function draw(){lastView=makeView();selected=hoverFraction===null?null:nearest(lastView.points,(lastView.start+hoverFraction*lastView.seconds)*1e6);for(const p of plots)drawChart(p,lastView);$('empty').hidden=Boolean(lastView.all.length);}
 function updatePauseButton(){$('pause').textContent=paused?'▷':'Ⅱ';$('pause').classList.toggle('active',paused);$('pause').setAttribute('aria-label',paused?'Tiếp tục đồ thị':'Tạm dừng đồ thị');}
 $('connect').onclick=connect;$('demo').onclick=$('emptyDemo').onclick=startDemo;
-$('calibrate').onclick=()=>command('CALIBRATE');$('zero').onclick=()=>command('ZERO_YAW');
+$('calibrate').onclick=()=>command('CALIBRATE');$('zero').onclick=()=>command('ZERO_ALL');
 $('import').onclick=()=>$('file').click();$('file').onchange=e=>{importFile(e.target.files[0]);e.target.value='';};
 $('clear').onclick=clearData;$('window').onchange=()=>{dirty=true;};
+$('angleMode').onchange=()=>{continuousAngles=$('angleMode').value==='continuous';dirty=true;};
 $('pause').onclick=()=>{paused=!paused;frozen=paused?buffer.values():[];hoverFraction=null;selected=null;updatePauseButton();dirty=true;};
 $('record').onclick=()=>{if(recording){finishCapture();return;}if(!(source==='demo'||source==='serial'&&port))return;recording=true;capture=[];$('record').textContent='■ Lưu CSV';$('record').classList.add('recording');};
 const resize=new ResizeObserver(()=>{dirty=true;});

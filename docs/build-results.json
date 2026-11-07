@@ -4,44 +4,44 @@
   "hardware_runtime_tested": false,
   "cpu_or_drift_benchmarked": false,
   "host_cpp11": "GCC 15.2.0 MinGW Windows",
-  "host_imu_instance_size_bytes": 2424,
+  "host_imu_instance_size_bytes": 2448,
   "inav_reference_steps": 100000,
   "max_host_quaternion_component_distance": 0,
-  "viewer_parser_tests": 8,
+  "viewer_parser_tests": 10,
   "embedded_builds": [
     {
       "environment": "esp32s3",
       "status": "compiled_and_linked",
-      "static_ram_bytes": 21932,
-      "flash_bytes": 285441,
+      "static_ram_bytes": 21956,
+      "flash_bytes": 286333,
       "scope": "entire_example_including_Arduino_core_and_USB"
     },
     {
       "environment": "stm32f411",
       "status": "compiled_and_linked",
-      "static_ram_bytes": 8184,
-      "flash_bytes": 47104,
+      "static_ram_bytes": 8208,
+      "flash_bytes": 47888,
       "scope": "entire_example_including_Arduino_core_and_USB"
     },
     {
       "environment": "esp32s3_i2c",
       "status": "compiled_and_linked",
-      "static_ram_bytes": 21764,
-      "flash_bytes": 287309,
+      "static_ram_bytes": 21788,
+      "flash_bytes": 288209,
       "scope": "entire_example_including_Arduino_core_and_USB"
     },
     {
       "environment": "stm32f411_i2c",
       "status": "compiled_and_linked",
-      "static_ram_bytes": 8188,
-      "flash_bytes": 53100,
+      "static_ram_bytes": 8212,
+      "flash_bytes": 53892,
       "scope": "entire_example_including_Arduino_core_and_USB"
     },
     {
       "environment": "tt_f411_icm42605",
       "status": "compiled_and_linked",
-      "static_ram_bytes": 8192,
-      "flash_bytes": 47192,
+      "static_ram_bytes": 8216,
+      "flash_bytes": 47968,
       "scope": "entire_example_including_Arduino_core_and_USB"
     }
   ],
@@ -81,14 +81,17 @@
       "top health and temperature",
       "pause with live receive",
       "linked hover/readouts",
-      "26-column serial mock",
+      "27-column serial mock",
       "raw CSV export",
       "old 25-column real log import",
-      "same-origin old CSS/JS cached, then modern viewer loads without clearing cache"
+      "same-origin old CSS/JS cached, then modern viewer loads without clearing cache",
+      "standard/continuous angle modes",
+      "ZERO_ALL command and zero-reference telemetry"
     ],
     "appearance": "white canvases, black axes text and outer workspace, #39C5BB primary buttons, 36px centered angle readouts",
     "cached_upgrade_without_clearing_cache": true
   },
-  "embedded_local_footprint_verified_release": "0.1.3; v0.1.4 is a viewer/launcher-only hotfix",
-  "viewer_http_regression_tests": 3
+  "embedded_local_footprint_verified_release": "0.1.4",
+  "viewer_http_regression_tests": 3,
+  "zero_reference_regression": "tilted pose, relative 90-degree body rotation, repeated zero/calibration, invalid-gravity wait; native fusion/body measurements unchanged"
 }

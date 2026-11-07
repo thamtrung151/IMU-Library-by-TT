@@ -4,7 +4,7 @@
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#0c121b"><title>IMU Library by TT</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='10' fill='%2339c5bb'/%3E%3Cpath d='M8 13h24M14 13v16M26 13v16' stroke='%23061b19' stroke-width='4'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="style.css?v=ttimu-ui-20261108-2">
+  <link rel="stylesheet" href="style.css?v=ttimu-ui-20261108-4">
 </head>
 <body>
 <header class="topbar">
@@ -15,7 +15,7 @@
   <section class="controls" aria-label="Kết nối và công cụ">
     <label class="sr-only" for="baud">Baud serial</label><select id="baud" aria-label="Baud serial"><option>921600</option><option>460800</option><option>230400</option><option>115200</option></select>
     <button id="connect" class="primary">↔ Kết nối USB</button><span class="control-divider"></span>
-    <button id="calibrate" disabled>Hiệu chuẩn lại</button><button id="zero" disabled>Đặt mốc yaw</button>
+    <button id="calibrate" title="Giữ bo đứng yên; hiệu chuẩn gyro rồi đặt cả ba góc về 0" disabled>Hiệu chuẩn lại</button><button id="zero" title="Lấy tư thế hiện tại làm mốc 0 cho roll, pitch và yaw" disabled>Góc về 0</button>
     <button id="import">Mở CSV</button><input type="file" id="file" accept=".csv,text/csv" hidden>
     <button id="record" disabled>● Ghi CSV</button><span id="recordInfo" class="muted"></span>
     <button id="demo" class="quiet">Mô phỏng</button>
@@ -33,6 +33,7 @@
     <div class="chart-toolbar">
       <h1>Góc <small>°</small></h1><div id="legend" class="angle-readings" aria-label="Góc và bật tắt đường tín hiệu"></div>
       <div class="chart-actions">
+        <label class="sr-only" for="angleMode">Cách hiển thị góc</label><select id="angleMode" title="Góc chuẩn: roll ±180°, yaw 0–360°. Liên tục: cộng số vòng."><option value="wrapped" selected>Góc chuẩn</option><option value="continuous">Liên tục</option></select>
         <label class="sr-only" for="window">Cửa sổ thời gian</label><select id="window"><option value="5">5 s</option><option value="10" selected>10 s</option><option value="30">30 s</option><option value="60">60 s</option><option value="all">Toàn bộ</option></select>
         <button id="pause" class="icon-button" title="Tạm dừng hình; tiếp tục nhận và ghi dữ liệu" aria-label="Tạm dừng đồ thị">Ⅱ</button><button id="clear" class="icon-button" title="Xóa đồ thị" aria-label="Xóa đồ thị">↺</button>
       </div>
@@ -50,5 +51,5 @@
   </section>
 </main>
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
-<script type="module" src="app.mjs?v=ttimu-ui-20261108-2"></script>
+<script type="module" src="app.mjs?v=ttimu-ui-20261108-4"></script>
 </body></html>

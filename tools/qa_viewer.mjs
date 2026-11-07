@@ -37,6 +37,7 @@ try{
   for(let i=0;i<60;i++){if(await evaluate('!!document.getElementById("roll")'))break;await delay(100);}
   assert.equal(await evaluate('document.querySelectorAll("canvas").length'),7);
   assert.equal(await evaluate('document.querySelectorAll("[role=tab],.sidebar").length'),0);
+  assert.equal(await evaluate('document.getElementById("angleMode").value'),'wrapped');
   assert(await evaluate('document.querySelector(".health-strip").getBoundingClientRect().bottom<document.getElementById("plot").getBoundingClientRect().top'));
   assert(await evaluate('document.getElementById("plot").getBoundingClientRect().height>2*document.getElementById("plot-gx").getBoundingClientRect().height'));
   assert.equal(await evaluate('getComputedStyle(document.getElementById("plot")).backgroundColor'),'rgb(255, 255, 255)');
@@ -57,10 +58,10 @@ try{
   assert.equal(after[0],before[0]);assert.equal(after[1],before[1]);assert.notEqual(after[2],before[2]);
   await evaluate('document.getElementById("pause").click()');
   await send('Browser.setDownloadBehavior',{behavior:'allow',downloadPath:directory});
-  // A new 26-column firmware stream already has reversed roll. Do not reverse twice.
+  // A new 27-column firmware stream already has reversed roll. Do not reverse twice.
   await evaluate(`window.commands=[];window.mockPort={readable:new ReadableStream({start(c){window.serialController=c;}}),writable:new WritableStream({write(b){window.commands.push(new TextDecoder().decode(b));}}),async open(o){window.serialOptions=o;},async close(){}};Object.defineProperty(navigator,'serial',{configurable:true,value:{async requestPort(){return window.mockPort;}}});document.getElementById('connect').click();`);
   await delay(150);assert.equal(await evaluate('window.serialOptions.baudRate'),921600);
-  const line=(t,ready,calib)=>`${t},-1.25,-2.5,359.9,0.01,-0.02,0.03,0.1,0.2,9.8,26.5,${ready},1000,0,${calib},0,0,1,0,0,0,0,0,0,1,-1\n`;
+  const line=(t,ready,calib)=>`${t},-1.25,-2.5,359.9,0.01,-0.02,0.03,0.1,0.2,9.8,26.5,${ready},1000,0,${calib},0,0,1,0,0,0,0,0,0,1,-1,0\n`;
   await evaluate(`window.serialController.enqueue(new TextEncoder().encode(${JSON.stringify(line(1000,0,.5))}));`);await delay(150);
   assert.match(await evaluate('document.getElementById("noticeText").textContent'),/Đang hiệu chuẩn/);
   await evaluate('document.getElementById("calibrate").click()');await delay(80);assert(await evaluate('window.commands.includes("CALIBRATE\\n")'));
@@ -73,7 +74,10 @@ try{
   await evaluate('document.getElementById("record").click()');await delay(400);
   const csv=(await fs.readdir(directory)).find(n=>n.endsWith('.csv')&&!priorFiles.has(n));assert(csv);
   const exported=await fs.readFile(path.join(directory,csv),'utf8');assert.match(exported,/3000,-1.25,-2.5,359.9/);assert.match(exported,/acc_weight,roll_sign/);
-  await evaluate('document.getElementById("zero").click()');await delay(80);assert(await evaluate('window.commands.includes("ZERO_YAW\\n")'));
+  await evaluate('document.getElementById("zero").click()');await delay(80);assert(await evaluate('window.commands.includes("ZERO_ALL\\n")'));
+  const zeroLine='4000,0,0,0,0,0,0,0.1,0.2,9.8,26.5,1,1000,0,1,0,0,1,0,0,0,0,0,0,1,-1,1\n';
+  await evaluate(`window.serialController.enqueue(new TextEncoder().encode(${JSON.stringify(zeroLine)}));`);await delay(100);
+  for(const id of ['roll','pitch','yaw'])assert.equal(await evaluate(`document.getElementById('${id}').textContent`),'0.00');
   await evaluate('document.getElementById("connect").click()');await delay(150);
   assert.equal(await evaluate('document.getElementById("calibrate").disabled'),true);
   // Old CSV, all channels. Hover numbers must match the exact point on all seven plots.
@@ -81,10 +85,14 @@ try{
   const box=await evaluate('(()=>{const r=document.getElementById("plot").getBoundingClientRect();return {x:r.x+57+(r.width-70)/2,y:r.y+70};})()');
   await send('Input.dispatchMouseEvent',{type:'mouseMoved',x:box.x,y:box.y});await delay(120);
   assert.equal(await evaluate('document.getElementById("roll").textContent'),'20.00');
-  assert.equal(await evaluate('document.getElementById("yaw").textContent'),'360.00');
+  assert.equal(await evaluate('document.getElementById("yaw").textContent'),'0.00');
   assert.equal(await evaluate('document.getElementById("gx").textContent'),'0.20000');
   assert.equal(await evaluate('document.getElementById("ax").textContent'),'2.000');
   assert.match(await evaluate('document.getElementById("cursorLabel").textContent'),/2.000/);
+  await evaluate('document.getElementById("angleMode").value="continuous";document.getElementById("angleMode").dispatchEvent(new Event("change"))');await delay(100);
+  assert.equal(await evaluate('document.getElementById("yaw").textContent'),'360.00');
+  await evaluate('document.getElementById("angleMode").value="wrapped";document.getElementById("angleMode").dispatchEvent(new Event("change"))');await delay(100);
+  assert.equal(await evaluate('document.getElementById("yaw").textContent'),'0.00');
   await send('Input.dispatchMouseEvent',{type:'mouseMoved',x:5,y:5});
   await evaluate('document.getElementById("toast").classList.remove("visible")');
   await send('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:1,mobile:true});await delay(200);
@@ -92,6 +100,6 @@ try{
   await send('Emulation.setDeviceMetricsOverride',{width:1440,height:900,deviceScaleFactor:1,mobile:false});
   if(process.argv[2]){await importText(await fs.readFile(process.argv[2],'utf8'),path.basename(process.argv[2]));await screenshot('provided-log.png');}
   assert.deepEqual(errors,[]);
-  console.log('PASS: seven simultaneous charts, top health, compact desktop/mobile, freeze with live input, hover/value alignment, 26-column mocked USB, commands, raw CSV export/import.');
+  console.log('PASS: seven charts, desktop/mobile, pause/hover, standard/continuous angles, 27-column mocked USB, calibration/zero commands, raw CSV export/import.');
   console.log('Screenshots:',directory);
 }finally{await send('Page.close');ws.close();}

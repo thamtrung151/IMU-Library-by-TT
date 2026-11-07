@@ -104,6 +104,62 @@ static void rollConventionAndContinuousRun() {
     CHECK(continuous.calibration().gyroBiasCounts[2]==0);CHECK(continuous.data().timestampUs==199999000);
     CHECK(continuous.diagnostics().calibrationProgress==1);CHECK(continuous.state()==State::Ready);
 }
+static float headingDistance(float value) {return std::min(std::fabs(value),std::fabs(360-value));}
+static void zeroReference() {
+    // A zero pose must change output coordinates, never force the gravity AHRS flat.
+    for(int sign : {-1,1}) {
+        Config cfg;cfg.eulerRollSign=sign;cfg.startupCalibration=false;cfg.gyroKalman=false;
+        cfg.gyroAntiAliasHz=cfg.gyroLowpassHz=cfg.accelLowpassHz=0;
+        IMU native,tared;CHECK(native.beginRaw(Sensor::ICM42605,cfg));CHECK(tared.beginRaw(Sensor::ICM42605,cfg));
+        CHECK(!tared.zeroAttitude());
+        Calibration cal;cal.sensor=Sensor::ICM42605;CHECK(native.setCalibration(cal));CHECK(tared.setCalibration(cal));
+        RawSample s;s.temperatureC=30;s.accel[0]=-530;s.accel[1]=989;s.accel[2]=1713;
+        native.feed(s);tared.feed(s);CHECK(tared.ready());
+        CHECK(std::fabs(tared.data().roll)>20);CHECK(std::fabs(tared.data().pitch)>10);
+        CHECK(tared.zeroAttitude());CHECK(tared.data().referenceId==1);
+        for(uint32_t ms=1;ms<=3000;++ms){
+            s.timestampUs=ms*1000;native.feed(s);tared.feed(s);
+            CHECK(std::fabs(tared.data().roll)<.01f&&std::fabs(tared.data().pitch)<.01f&&headingDistance(tared.data().yaw)<.01f);
+            const auto a=native.nativeQuaternion(),b=tared.nativeQuaternion();
+            CHECK(a.w==b.w&&a.x==b.x&&a.y==b.y&&a.z==b.z);
+            CHECK(native.data().gyro.x==tared.data().gyro.x&&native.data().accel.z==tared.data().accel.z);
+            CHECK(native.diagnostics().gyroDriftCorrection.x==tared.diagnostics().gyroDriftCorrection.x);
+        }
+        // Body-X rotation from a tilted zero pose must remain a body-X rotation.
+        s.accel[0]=s.accel[1]=s.accel[2]=0;s.gyro[0]=1640;
+        for(uint32_t ms=3001;ms<=3900;++ms){s.timestampUs=ms*1000;tared.feed(s);}
+        CHECK(std::fabs(tared.data().roll-sign*90)<.03f);CHECK(std::fabs(tared.data().pitch)<.03f);
+        CHECK(headingDistance(tared.data().yaw)<.03f);
+        const auto q=tared.data().quaternion;CHECK(std::fabs(q.w-.70710678f)<.001f&&std::fabs(q.x-.70710678f)<.001f);
+        s.gyro[0]=0;s.gyro[1]=492;
+        for(uint32_t ms=3901;ms<=4200;++ms){s.timestampUs=ms*1000;tared.feed(s);}
+        const float r=tared.data().roll,p=tared.data().pitch;const auto before=tared.nativeQuaternion();CHECK(headingDistance(tared.data().yaw)>1);
+        tared.zeroYaw();CHECK(headingDistance(tared.data().yaw)<.01f);
+        CHECK(std::fabs(tared.data().roll-r)<.01f&&std::fabs(tared.data().pitch-p)<.01f);
+        CHECK(tared.nativeQuaternion().w==before.w&&tared.nativeQuaternion().z==before.z);
+        CHECK(tared.zeroAttitude());CHECK(tared.data().referenceId==3);
+        tared.startCalibration(true);CHECK(!tared.ready());CHECK(!tared.zeroAttitude());
+        s.accel[0]=700;s.accel[1]=-1000;s.accel[2]=1646;s.gyro[0]=41;s.gyro[1]=-23;s.gyro[2]=17;
+        bool first=false;
+        for(uint32_t ms=4201;ms<15000;++ms){s.timestampUs=ms*1000;tared.feed(s);if(tared.ready()){
+            first=true;CHECK(std::fabs(tared.data().roll)<.01f&&std::fabs(tared.data().pitch)<.01f&&headingDistance(tared.data().yaw)<.01f);
+        }}
+        CHECK(first&&tared.ready());CHECK(tared.data().referenceId==5);
+        CHECK(std::fabs(tared.calibration().gyroBiasCounts[0]-41)<.001f);
+        CHECK(std::fabs(tared.nativeQuaternion().x)>.1f); // Tilt remains in the fusion state.
+        CHECK(tared.beginRaw(Sensor::ICM42605,cfg));CHECK(tared.data().referenceId==0);
+    }
+    // A pending zero waits through calibration AND invalid/freefall acceleration.
+    IMU waiting;CHECK(waiting.beginRaw(Sensor::ICM42605));waiting.startCalibration(true);
+    RawSample s;s.temperatureC=25;
+    for(uint32_t ms=0;ms<2200;++ms){s.timestampUs=ms*1000;waiting.feed(s);}
+    CHECK(waiting.state()==State::WaitingForAttitude);CHECK(!waiting.ready());
+    s.accel[1]=2048;
+    for(uint32_t ms=2200;ms<2350;++ms){s.timestampUs=ms*1000;waiting.feed(s);if(waiting.ready()){
+        CHECK(std::fabs(waiting.data().roll)<.01f&&std::fabs(waiting.data().pitch)<.01f);
+    }}
+    CHECK(waiting.ready());CHECK(waiting.data().referenceId==1);
+}
 static void trace(const char* path) {
     FILE* f=std::fopen(path,"w");CHECK(f);
     std::fprintf(f,"t,old_roll,old_pitch,old_yaw,new_roll,new_pitch,new_yaw,old_iz,new_iz\n");
@@ -121,4 +177,4 @@ static void trace(const char* path) {
     }
     std::fclose(f);
 }
-int main(int argc,char** argv){allFaces();recalibration();pendingGravityAndAxes();rollConventionAndContinuousRun();if(argc==2)trace(argv[1]);std::printf("PASS startup: %u checks\n",checks);}
+int main(int argc,char** argv){allFaces();recalibration();pendingGravityAndAxes();rollConventionAndContinuousRun();zeroReference();if(argc==2)trace(argv[1]);std::printf("PASS startup: %u checks\n",checks);}
