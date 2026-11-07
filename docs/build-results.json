@@ -1,47 +1,47 @@
 {
   "date": "2026-11-08",
-  "release": "0.1.2",
+  "release": "0.1.3",
   "hardware_runtime_tested": false,
   "cpu_or_drift_benchmarked": false,
   "host_cpp11": "GCC 15.2.0 MinGW Windows",
   "host_imu_instance_size_bytes": 2424,
   "inav_reference_steps": 100000,
   "max_host_quaternion_component_distance": 0,
-  "viewer_parser_tests": 7,
+  "viewer_parser_tests": 8,
   "embedded_builds": [
     {
       "environment": "esp32s3",
       "status": "compiled_and_linked",
       "static_ram_bytes": 21932,
-      "flash_bytes": 285369,
+      "flash_bytes": 285441,
       "scope": "entire_example_including_Arduino_core_and_USB"
     },
     {
       "environment": "stm32f411",
       "status": "compiled_and_linked",
       "static_ram_bytes": 8184,
-      "flash_bytes": 47040,
+      "flash_bytes": 47104,
       "scope": "entire_example_including_Arduino_core_and_USB"
     },
     {
       "environment": "esp32s3_i2c",
       "status": "compiled_and_linked",
       "static_ram_bytes": 21764,
-      "flash_bytes": 287253,
+      "flash_bytes": 287309,
       "scope": "entire_example_including_Arduino_core_and_USB"
     },
     {
       "environment": "stm32f411_i2c",
       "status": "compiled_and_linked",
       "static_ram_bytes": 8188,
-      "flash_bytes": 53052,
+      "flash_bytes": 53100,
       "scope": "entire_example_including_Arduino_core_and_USB"
     },
     {
       "environment": "tt_f411_icm42605",
       "status": "compiled_and_linked",
       "static_ram_bytes": 8192,
-      "flash_bytes": 47120,
+      "flash_bytes": 47192,
       "scope": "entire_example_including_Arduino_core_and_USB"
     }
   ],
@@ -51,7 +51,7 @@
     "dependency": "local symlink",
     "include_order": "Arduino.h first",
     "status": "compiled_and_linked",
-    "verified_release": "0.1.2"
+    "verified_release": "0.1.3"
   },
   "fc_profile": {
     "hse_hz": 8000000,
@@ -60,8 +60,31 @@
     "clock_symbol": "strong SystemClock_Config override verified in linked ELF",
     "spi": 2,
     "cs": "PC13",
-    "alignment": "CW270_DEG {-2,1,3}; Z/swap correction from logs; X/Y signs still require motion check"
+    "alignment": "CW270_DEG {-2,1,3}; user confirmed pitch/yaw signs on v0.1.2",
+    "euler_roll_sign": -1
   },
   "startup_regression": "passed: six faces, inverted/tilted starts, late recalibration, readiness, FC axes",
-  "hardware_baseline_logs_analyzed": 2
+  "hardware_baseline_logs_analyzed": 3,
+  "manual_only_calibration_regression": "200 seconds simulated continuous rotation, micros wrap, no automatic calibration at 150 seconds",
+  "roll_convention_regression": "reported roll reversed; native quaternion/body sensor vectors and pitch/yaw unchanged; matching signed roll rate",
+  "viewer_browser_qa": {
+    "desktop": [
+      1440,
+      900
+    ],
+    "mobile": [
+      390,
+      844
+    ],
+    "simultaneous_charts": 7,
+    "passed": [
+      "top health and temperature",
+      "pause with live receive",
+      "linked hover/readouts",
+      "26-column serial mock",
+      "raw CSV export",
+      "old 25-column real log import"
+    ],
+    "appearance": "white canvases, black axes text and outer workspace, #39C5BB primary buttons, 36px centered angle readouts"
+  }
 }

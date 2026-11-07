@@ -1,226 +1,195 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import {TelemetryParser, TraceBuffer, COLUMNS, csvRow} from './telemetry.mjs';
 
-const $ = id => document.getElementById(id);
-const buffer = new TraceBuffer(10000);
-const colors = ['#69a5ff','#36d2ad','#f0b959'];
-const modes = {
-  attitude: {keys:['roll','pitch','yaw_unwrapped'], labels:['Roll','Pitch','Yaw'], unit:'Góc (°) · yaw nối liên tục qua 360°'},
-  gyro: {keys:['gx','gy','gz'], labels:['X','Y','Z'], unit:'Vận tốc góc (rad/s)'},
-  accel: {keys:['ax','ay','az'], labels:['X','Y','Z'], unit:'Gia tốc gồm trọng lực (m/s²)'}
-};
-let mode='attitude', visible=[true,true,true], paused=false, source='none';
-let port=null, reader=null, writer=null, connecting=false, demoTimer=null;
-let latest=null, lastReceived=0, total=0, rateCount=0, rateStart=performance.now(), frequency=0;
-let recording=false, capture=[], toastTimer, dirty=true, lastPaint=0;
-const parser=new TelemetryParser(receive, info => {
+const $=id=>document.getElementById(id), buffer=new TraceBuffer(10000);
+const colors=['#2f80ed','#009c86','#c77912'], angleKeys=['roll','pitch','yaw'];
+let visible=[true,true,true],paused=false,frozen=[],hoverFraction=null,selected=null,lastView=null;
+let source='none',port=null,reader=null,writer=null,connecting=false,demoTimer=null;
+let latest=null,lastReceived=0,total=0,rateCount=0,rateStart=performance.now(),frequency=0;
+let recording=false,capture=[],toastTimer,dirty=true,lastPaint=0;
+const parser=new TelemetryParser(receive,info=>{
   if(info.includes('ERROR'))toast(info);
   if(info.includes('IMU Library'))$('connectionHint').textContent=info;
 });
 
-function toast(message) {
-  $('toast').textContent=message;$('toast').classList.add('visible');
-  clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').classList.remove('visible'),5500);
+function toast(message){$('toast').textContent=message;$('toast').classList.add('visible');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').classList.remove('visible'),4500);}
+function controls(){
+  $('connect').disabled=connecting;$('connect').textContent=port?'Ngắt USB':connecting?'Đang kết nối…':'↔ Kết nối USB';
+  $('baud').disabled=Boolean(port)||connecting;$('calibrate').disabled=$('zero').disabled=!writer;
+  $('record').disabled=!(source==='demo'||source==='serial'&&port)||connecting;
+  $('import').disabled=$('demo').disabled=Boolean(port)||connecting;
 }
-function setSource(value) {
-  source=value;
-  $('sourceBadge').className='badge'+(value==='demo'?' demo':value==='serial'?' live':'');
-  $('sourceBadge').textContent=({none:'Chưa có dữ liệu',demo:'MÔ PHỎNG · không phải IMU thật',serial:'USB · dữ liệu từ bo',csv:'CSV · dữ liệu đã ghi'})[value];
-  controls();dirty=true;
+function setSource(value){
+  source=value;$('sourceBadge').className='badge'+(value==='demo'?' demo':value==='serial'?' live':'');
+  $('sourceBadge').textContent=({none:'Chưa kết nối',demo:'MÔ PHỎNG',serial:'USB',csv:'CSV'})[value];controls();dirty=true;
 }
-function controls() {
-  $('connect').disabled=connecting;
-  $('connect').textContent=port?'Ngắt kết nối USB':connecting?'Đang kết nối…':'↔ Kết nối USB';
-  $('baud').disabled=Boolean(port)||connecting;
-  $('calibrate').disabled=$('zero').disabled=!writer;
-  $('record').disabled=!latest||source==='csv';
-  $('import').disabled=Boolean(port)||connecting;
-  $('demo').disabled=Boolean(port)||connecting;
+function clearData(){
+  buffer.clear();latest=null;selected=null;hoverFraction=null;lastView=null;total=rateCount=0;frequency=0;rateStart=performance.now();
+  paused=false;frozen=[];updatePauseButton();dirty=true;
 }
-function clearData() {
-  buffer.clear();latest=null;total=rateCount=0;frequency=0;rateStart=performance.now();
-  dirty=true;updateReadings();controls();
+function receive(sample){
+  if(latest&&sample.t_us<latest.t_us){hoverFraction=null;selected=null;}
+  latest=buffer.add(sample);lastReceived=performance.now();total++;rateCount++;if(!paused)dirty=true;
+  if(recording){capture.push(csvRow(sample));if(capture.length>=120000){finishCapture();toast('Đã lưu 120.000 mẫu. Có thể bắt đầu bản ghi mới.');}}
 }
-function receive(sample) {
-  latest=buffer.add(sample);lastReceived=performance.now();total++;rateCount++;dirty=true;
-  if(recording) {
-    capture.push(csvRow(sample));
-    if(capture.length>=120000){finishCapture();toast('Đã lưu CSV khi đạt giới hạn 120.000 mẫu. Bạn có thể bắt đầu bản ghi mới.');}
-  }
-}
-function stopDemo() {if(demoTimer!==null){clearInterval(demoTimer);demoTimer=null;}}
-function startDemo() {
-  if(port)return;
-  if(recording)finishCapture();stopDemo();clearData();parser.reset();setSource('demo');
+function stopDemo(){if(demoTimer!==null){clearInterval(demoTimer);demoTimer=null;}}
+function startDemo(){
+  if(port)return;if(recording)finishCapture();stopDemo();clearData();parser.reset();setSource('demo');
   const start=performance.now();
   demoTimer=setInterval(()=>{
     const t=(performance.now()-start)/1000;
     receive({t_us:Math.round(t*1e6),roll:12*Math.sin(t*.75),pitch:7*Math.sin(t*.5+.7),yaw:(t*3.5)%360,
-      gx:.157*Math.cos(t*.75),gy:.061*Math.cos(t*.5+.7),gz:.061,
-      ax:.4*Math.sin(t*.8),ay:1.4*Math.sin(t*.75),az:9.8+.12*Math.sin(t),
-      temp:27+.5*Math.sin(t/20),ready:t>2?1:0,dt_us:1000,gaps:0,calib:Math.min(1,t/2),retries:0,late:0});
-  },10);
-  controls();toast('Đang xem dữ liệu mô phỏng để thử giao diện. Chưa kết nối bo thật.');
+      gx:.157*Math.cos(t*.75),gy:.061*Math.cos(t*.5+.7),gz:.061,ax:.4*Math.sin(t*.8),ay:1.4*Math.sin(t*.75),az:9.8+.12*Math.sin(t),
+      temp:27+.5*Math.sin(t/20),ready:t>2?1:0,dt_us:1000,gaps:0,calib:Math.min(1,t/2),retries:0,late:0,roll_sign:1});
+  },10);controls();
 }
-
-async function disconnect() {
-  if(reader){try{await reader.cancel();}catch{}}
-  else if(port){try{await port.close();}catch{}port=null;}
-  controls();dirty=true;
-}
-async function connect() {
+async function disconnect(){if(reader){try{await reader.cancel();}catch{}}else if(port){try{await port.close();}catch{}port=null;}controls();dirty=true;}
+async function connect(){
   if(port){await disconnect();return;}
-  if(!('serial' in navigator)){
-    toast('Web Serial cần Chrome hoặc Edge trên máy tính. Bạn vẫn có thể mở CSV và thử giao diện.');return;
-  }
-  stopDemo();if(recording)finishCapture();connecting=true;controls();
-  let requested;
-  try {
-    requested=await navigator.serial.requestPort();
-    await requested.open({baudRate:Number($('baud').value),bufferSize:16384});
+  if(!('serial' in navigator)){toast('USB cần Chrome hoặc Edge trên máy tính.');return;}
+  stopDemo();if(recording)finishCapture();connecting=true;controls();let requested;
+  try{
+    requested=await navigator.serial.requestPort();await requested.open({baudRate:Number($('baud').value),bufferSize:16384});
     port=requested;writer=port.writable.getWriter();reader=port.readable.getReader();
-    parser.reset();clearData();setSource('serial');
-    const decoder=new TextDecoder();
-    connecting=false;controls();
-    try {
-      while(true){const {value,done}=await reader.read();if(done)break;if(value)parser.push(decoder.decode(value,{stream:true}));}
-    } finally {reader.releaseLock();reader=null;}
-  } catch(error) {
-    if(error.name!=='NotFoundError')toast(`Không thể kết nối: ${error.message}`);
-  } finally {
-    if(writer){try{writer.releaseLock();}catch{}writer=null;}
-    if(requested){try{await requested.close();}catch{}}
-    port=null;connecting=false;
-    if(recording)finishCapture();controls();dirty=true;
+    parser.reset();clearData();setSource('serial');const decoder=new TextDecoder();connecting=false;controls();
+    try{while(true){const {value,done}=await reader.read();if(done)break;if(value)parser.push(decoder.decode(value,{stream:true}));}}
+    finally{reader.releaseLock();reader=null;}
+  }catch(error){if(error.name!=='NotFoundError')toast(`Không thể kết nối: ${error.message}`);}
+  finally{
+    if(writer){try{writer.releaseLock();}catch{}writer=null;}if(requested){try{await requested.close();}catch{}}
+    port=null;connecting=false;if(recording)finishCapture();controls();dirty=true;
   }
 }
-async function command(text) {
-  if(!writer)return;
-  try {
-    await writer.write(new TextEncoder().encode(text+'\n'));
-    if(text==='CALIBRATE')toast('Đã gửi yêu cầu hiệu chuẩn. Giữ bo đứng yên và theo dõi trạng thái từ bo.');
-    else{buffer.clear();dirty=true;toast('Đã gửi yêu cầu đặt mốc yaw.');}
+async function command(text){
+  if(!writer)return;try{await writer.write(new TextEncoder().encode(text+'\n'));
+    if(text==='CALIBRATE')toast('Đã gửi hiệu chuẩn. Giữ bo đứng yên.');
+    else{clearData();toast('Đã đặt mốc yaw.');}
   }catch(error){toast('Không gửi được lệnh: '+error.message);}
 }
-function download(text,name) {
-  const url=URL.createObjectURL(new Blob([text],{type:'text/csv;charset=utf-8'}));
-  const anchor=document.createElement('a');anchor.href=url;anchor.download=name;anchor.click();
-  setTimeout(()=>URL.revokeObjectURL(url),1000);
+function download(text,name){const url=URL.createObjectURL(new Blob([text],{type:'text/csv;charset=utf-8'}));const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+function finishCapture(){
+  recording=false;$('record').classList.remove('recording');$('record').textContent='● Ghi CSV';
+  if(capture.length){const name=`ttimu-${source==='demo'?'SIMULATED-':''}${new Date().toISOString().replace(/[:.]/g,'-')}.csv`;
+    download(`# IMU Library by TT; source=${source}; ${source==='demo'?'SIMULATED DATA':'recorded telemetry'}; values=as-received\n${COLUMNS.join(',')}\n${capture.join('\n')}\n`,name);}
+  $('recordInfo').textContent=`Đã lưu ${capture.length.toLocaleString('vi-VN')} mẫu`;capture=[];
 }
-function finishCapture() {
-  recording=false;$('record').classList.remove('recording');$('record').textContent='● Bắt đầu ghi CSV';
-  if(capture.length){
-    const name=`ttimu-${source==='demo'?'SIMULATED-':''}${new Date().toISOString().replace(/[:.]/g,'-')}.csv`;
-    download(`# IMU Library by TT; source=${source}; ${source==='demo'?'SIMULATED DATA':'recorded telemetry'}\n${COLUMNS.join(',')}\n${capture.join('\n')}\n`,name);
-  }
-  $('recordInfo').textContent=`Đã ghi ${capture.length.toLocaleString('vi-VN')} mẫu.`;capture=[];
-}
-async function importFile(file) {
-  if(!file)return;
-  if(file.size>25*1024*1024){toast('Chọn CSV nhỏ hơn 25 MB để trình duyệt xử lý ổn định.');return;}
-  stopDemo();if(recording)finishCapture();clearData();parser.reset();setSource('csv');
-  try {
-    parser.push(await file.text());parser.finish();
-    const points=buffer.values();
+async function importFile(file){
+  if(!file)return;if(file.size>64*1024*1024){toast('Chọn CSV nhỏ hơn 64 MB.');return;}
+  stopDemo();if(recording)finishCapture();clearData();parser.reset();setSource('csv');$('sourceBadge').title=file.name;
+  try{parser.push(await file.text());parser.finish();const points=buffer.values();
     if(points.length>1){const span=(points.at(-1).t_us-points[0].t_us)/1e6;frequency=span>0?(points.length-1)/span:0;}
-    toast(`${file.name}: ${total.toLocaleString('vi-VN')} mẫu hợp lệ${parser.errors?`; bỏ ${parser.errors} dòng không hợp lệ`:''}.`);
-    controls();dirty=true;
+    $('window').value='all';dirty=true;if(parser.errors)toast(`Bỏ ${parser.errors} dòng lỗi.`);
   }catch(error){toast('Không đọc được CSV: '+error.message);}
 }
 
-function renderLegend() {
-  $('legend').replaceChildren();
-  modes[mode].labels.forEach((label,i)=>{
-    const button=document.createElement('button');button.className=visible[i]?'':'hidden';
-    button.setAttribute('aria-pressed',String(visible[i]));button.setAttribute('aria-label',`Hiện hoặc ẩn ${label}`);
-    const dot=document.createElement('i');dot.style.background=colors[i];button.append(dot,document.createTextNode(label));
-    button.onclick=()=>{visible[i]=!visible[i];renderLegend();dirty=true;};$('legend').append(button);
+function renderLegend(){
+  $('legend').replaceChildren();angleKeys.forEach((key,i)=>{
+    const b=document.createElement('button');b.style.setProperty('--channel',colors[i]);b.setAttribute('aria-pressed','true');
+    b.setAttribute('aria-label',`Hiện hoặc ẩn ${key}`);b.title='Góc liên tục, cùng giá trị trên đồ thị';
+    const dot=document.createElement('i'),label=document.createElement('span'),value=document.createElement('strong');
+    label.textContent=key[0].toUpperCase()+key.slice(1);label.prepend(dot);value.id=key;value.textContent='—';b.append(label,value);
+    b.onclick=()=>{visible[i]=!visible[i];b.classList.toggle('hidden',!visible[i]);b.setAttribute('aria-pressed',String(visible[i]));dirty=true;};$('legend').append(b);
   });
-  $('chartUnit').textContent=modes[mode].unit;
 }
-function format(value,digits=1) {return Number.isFinite(value)?value.toFixed(digits):'—';}
-function updateReadings() {
-  for(const key of ['roll','pitch','yaw'])$(key).textContent=latest?format(latest[key],2):'—';
-  $('temperature').innerHTML=`${format(latest?.temp)} <em>°C</em>`;
-  $('frequency').innerHTML=`${latest?format(frequency,0):'—'} <em>Hz</em>`;
-  $('dt').innerHTML=`${format(latest?.dt_us,0)} <em>µs</em>`;
-  $('gaps').textContent=latest?format(latest.gaps,0):'—';
-  const progress=latest&&Number.isFinite(latest.calib)?Math.max(0,Math.min(1,latest.calib)):0;
+const format=(v,digits=1)=>Number.isFinite(v)?v.toFixed(digits):'—';
+function valueFor(p,key){
+  if(!p)return undefined;
+  if(key==='roll')return p.roll_unwrapped??p.roll;
+  if(key==='yaw')return p.yaw_unwrapped??p.yaw;
+  return p[key];
+}
+function updateReadings(){
+  const point=selected??(paused?frozen.at(-1):latest);
+  for(const key of angleKeys)$(key).textContent=format(valueFor(point,key),2);
+  for(const key of ['gx','gy','gz','ax','ay','az'])$(key).textContent=format(point?.[key],key[0]==='g'?5:3);
+  $('temperature').textContent=format(latest?.temp);$('frequency').textContent=latest?format(frequency,0):'—';
+  $('dt').textContent=format(latest?.dt_us,0);$('gaps').textContent=format(latest?.gaps,0);
+  const progress=Number.isFinite(latest?.calib)?Math.max(0,Math.min(1,latest.calib)):latest?.ready===1?1:0;
   $('calibProgress').style.width=`${progress*100}%`;$('calibPercent').textContent=latest?`${Math.round(progress*100)}%`:'—';
-  $('calibLabel').textContent=latest?.ready===1?'Đã hiệu chuẩn':latest?'Đang hiệu chuẩn':'Hiệu chuẩn';
-  $('sampleCount').textContent=`${total.toLocaleString('vi-VN')} mẫu${parser.errors?` · ${parser.errors} dòng lỗi`:''}`;
-  const stale=source==='serial'&&(!port||performance.now()-lastReceived>1500);
-  const ready=latest?.ready===1;
-  let message='Sẵn sàng kết nối. Hoặc mở CSV để xem dữ liệu đã ghi.';
-  if(source==='demo')message='DỮ LIỆU MÔ PHỎNG — chỉ để thử giao diện, không phải kết quả từ bo IMU.';
-  else if(source==='csv')message=latest?'Đang xem CSV. Đồ thị hiển thị tối đa 10.000 mẫu cuối của phiên.':'CSV chưa có mẫu hợp lệ. Cần các cột t_us, roll, pitch, yaw.';
-  else if(source==='serial'){
-    if(!port)message='USB đã ngắt. Dữ liệu cuối được giữ lại để bạn xem.';
-    else if(stale)message='Đã mở USB, đang chờ dữ liệu. Kiểm tra baudrate và nạp ví dụ SerialPlotter.';
-    else if(!ready)message=`Đang hiệu chuẩn — giữ bo đứng yên${latest?.retries?`. Đã thử lại ${latest.retries} lần`:''}.`;
-    else if(latest.gaps>0)message=`Đang nhận dữ liệu. Bo đã ghi nhận ${latest.gaps} khoảng mất mẫu; kiểm tra tải xử lý và thời gian đọc.`;
-    else message='Dữ liệu sẵn sàng. Bạn có thể di chuyển bo hoặc bắt đầu ghi CSV.';
-  }
-  $('noticeText').textContent=message;
-  $('notice').className='notice'+(ready&&source==='serial'&&!stale?' ready':source==='demo'||stale||latest?.gaps>0?' warn':'');
-  $('streamLabel').textContent=paused?'ĐỒ THỊ TẠM DỪNG':source==='demo'?'MÔ PHỎNG':source==='csv'?'DỮ LIỆU CSV':port&&!stale?'USB STREAM':'CHƯA KẾT NỐI';
+  $('calibLabel').textContent=latest?.ready===1?'Đã hiệu chuẩn':latest?.ready===0?'Đang hiệu chuẩn':'Hiệu chuẩn';
+  $('sampleCount').textContent=`${total.toLocaleString('vi-VN')} mẫu${parser.errors?` · ${parser.errors} lỗi`:''}`;
+  const stale=source==='serial'&&(!port||performance.now()-lastReceived>1500),ready=latest?.ready===1;
+  let message='Chưa có dữ liệu';
+  if(source==='demo')message='MÔ PHỎNG';
+  else if(source==='csv')message=latest?'CSV · đã ghi':'CSV không có mẫu hợp lệ';
+  else if(source==='serial')message=!port?'USB đã ngắt':stale?'Chờ dữ liệu USB':!ready?'Đang hiệu chuẩn':latest.gaps>0?'Có khoảng mất mẫu':'Dữ liệu sẵn sàng';
+  $('noticeText').textContent=message;$('notice').className='signal'+(ready&&source==='serial'&&!stale?' ready':source==='demo'||stale||latest?.gaps>0?' warn':'');
+  $('streamLabel').textContent=paused?'TẠM DỪNG HÌNH':source==='demo'?'MÔ PHỎNG':source==='csv'?'CSV':port&&!stale?'USB STREAM':'CHƯA KẾT NỐI';
   $('liveDot').className=port&&!stale?'live':'';
-  if(recording)$('recordInfo').textContent=`Đang ghi ${capture.length.toLocaleString('vi-VN')} mẫu…`;
-  controls();
+  $('cursorLabel').textContent=selected?`t = ${(selected.t_us/1e6).toFixed(3)} s`:'';
+  if(recording)$('recordInfo').textContent=`${capture.length.toLocaleString('vi-VN')} mẫu đang ghi`;
+  const title=`${message}${latest&&Number.isFinite(latest.temp)?` · ${format(latest.temp)} °C`:''} | IMU by TT`;
+  if(document.title!==title)document.title=title;controls();
 }
 
-const canvas=$('plot'),ctx=canvas.getContext('2d');
-function draw() {
-  const rect=canvas.getBoundingClientRect();if(!rect.width||!rect.height)return;
-  const dpr=window.devicePixelRatio||1;
+const plots=[{canvas:$('plot'),keys:angleKeys,colors,large:true},...['gx','gy','gz','ax','ay','az'].map((key,i)=>({canvas:$('plot-'+key),keys:[key],colors:[colors[i%3]],large:false}))];
+function makeView(){
+  const all=paused?frozen:buffer.values(),end=all.length?all.at(-1).t_us/1e6:0;
+  const seconds=$('window').value==='all'?Math.max(.1,end-(all[0]?.t_us??0)/1e6):Number($('window').value),start=end-seconds;
+  const points=all.filter(p=>p.t_us/1e6>=start),intervals=[];
+  for(let i=1;i<points.length&&i<=128;i++)intervals.push(points[i].t_us-points[i-1].t_us);
+  intervals.sort((a,b)=>a-b);
+  return {all,end,seconds,start,points,gapUs:Math.max(250000,5*(intervals[intervals.length>>1]||0))};
+}
+function nearest(points,time){
+  if(!points.length)return null;let lo=0,hi=points.length-1;
+  while(lo<hi){const mid=(lo+hi)>>1;if(points[mid].t_us<time)lo=mid+1;else hi=mid;}
+  return lo&&Math.abs(points[lo-1].t_us-time)<Math.abs(points[lo].t_us-time)?points[lo-1]:points[lo];
+}
+function drawChart(plot,view){
+  const canvas=plot.canvas,rect=canvas.getBoundingClientRect();if(rect.width<1||rect.height<1)return;
+  const dpr=Math.min(window.devicePixelRatio||1,2),ctx=canvas.getContext('2d');
   if(canvas.width!==Math.round(rect.width*dpr)||canvas.height!==Math.round(rect.height*dpr)){canvas.width=Math.round(rect.width*dpr);canvas.height=Math.round(rect.height*dpr);}
-  ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,rect.width,rect.height);
-  const left=53,right=14,top=16,bottom=31,w=rect.width-left-right,h=rect.height-top-bottom;
-  const all=buffer.values(),end=all.length?all.at(-1).t_us/1e6:0,seconds=Number($('window').value),start=end-seconds;
-  const points=all.filter(p=>p.t_us/1e6>=start),keys=modes[mode].keys;
-  let min=Infinity,max=-Infinity;
-  for(const p of points)for(let c=0;c<3;c++)if(visible[c]&&Number.isFinite(p[keys[c]])){min=Math.min(min,p[keys[c]]);max=Math.max(max,p[keys[c]]);}
-  if(!Number.isFinite(min)){min=mode==='attitude'?-90:-1;max=mode==='attitude'?90:1;}
-  const span=Math.max(max-min,mode==='attitude'?2:.2),middle=(min+max)/2;
-  min=middle-span*.65;max=middle+span*.65;
-  ctx.font='10px Consolas,monospace';ctx.lineWidth=1;ctx.textBaseline='middle';
-  for(let i=0;i<=4;i++){
-    const y=top+h*i/4;ctx.strokeStyle='#213147';ctx.beginPath();ctx.moveTo(left,y+.5);ctx.lineTo(left+w,y+.5);ctx.stroke();
-    const v=max-(max-min)*i/4;ctx.fillStyle='#647f9e';ctx.textAlign='right';
-    ctx.fillText(Math.abs(v)>10000?v.toExponential(1):v.toFixed(Math.abs(max-min)<5?1:0),left-10,y);
+  ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,rect.width,rect.height);ctx.fillStyle='#fff';ctx.fillRect(0,0,rect.width,rect.height);
+  const left=plot.large?57:43,right=plot.large?13:7,top=plot.large?13:6,bottom=plot.large?26:18,w=rect.width-left-right,h=rect.height-top-bottom;
+  if(w<=0||h<=0)return;
+  const enabled=i=>!plot.large||visible[i];let min=Infinity,max=-Infinity;
+  for(const p of view.points)for(let i=0;i<plot.keys.length;i++)if(enabled(i)){const v=valueFor(p,plot.keys[i]);if(Number.isFinite(v)){min=Math.min(min,v);max=Math.max(max,v);}}
+  const floor=plot.large?2:plot.keys[0][0]==='g'?.004:.04;
+  if(!Number.isFinite(min)){min=-floor/2;max=floor/2;}
+  const span=Math.max(max-min,floor),middle=(min+max)/2;min=middle-span*.6;max=middle+span*.6;
+  const yOf=v=>top+(max-v)/(max-min)*h,xOf=p=>left+(p.t_us/1e6-view.start)/view.seconds*w;
+  ctx.font=`${plot.large?10:9}px Consolas,monospace`;ctx.textBaseline='middle';ctx.lineWidth=1;
+  const rows=plot.large?4:2;
+  for(let i=0;i<=rows;i++){
+    const y=top+h*i/rows,v=max-(max-min)*i/rows;ctx.strokeStyle='#ddd';ctx.beginPath();ctx.moveTo(left,y+.5);ctx.lineTo(left+w,y+.5);ctx.stroke();
+    const digits=span<.1?3:span<2?2:span<20?1:0;ctx.fillStyle='#111';ctx.textAlign='right';ctx.fillText(Math.abs(v)>99999?v.toExponential(1):v.toFixed(digits),left-7,y);
   }
-  for(let i=0;i<=5;i++){
-    const x=left+w*i/5;ctx.strokeStyle='#1b293d';ctx.beginPath();ctx.moveTo(x+.5,top);ctx.lineTo(x+.5,top+h);ctx.stroke();
-    ctx.fillStyle='#5c7595';ctx.textAlign='center';ctx.fillText(`${Math.round(-seconds+seconds*i/5)}s`,x,top+h+18);
+  const cols=plot.large?5:2;
+  for(let i=0;i<=cols;i++){
+    const x=left+w*i/cols;ctx.strokeStyle='#eee';ctx.beginPath();ctx.moveTo(x+.5,top);ctx.lineTo(x+.5,top+h);ctx.stroke();
+    ctx.fillStyle='#111';ctx.textAlign='center';const tick=-view.seconds+view.seconds*i/cols;
+    ctx.fillText(`${(Math.abs(tick)<.0001?0:tick).toFixed(view.seconds/cols<1?1:0)}s`,x,top+h+12);
   }
   ctx.save();ctx.beginPath();ctx.rect(left,top,w,h);ctx.clip();
-  for(let c=0;c<3;c++){
-    if(!visible[c])continue;ctx.strokeStyle=colors[c];ctx.lineWidth=1.6;ctx.beginPath();let started=false;
-    for(const p of points){const v=p[keys[c]];if(!Number.isFinite(v)){started=false;continue;}
-      const x=left+(p.t_us/1e6-start)/seconds*w,y=top+(max-v)/(max-min)*h;
-      if(started)ctx.lineTo(x,y);else{ctx.moveTo(x,y);started=true;}
+  for(let i=0;i<plot.keys.length;i++){
+    if(!enabled(i))continue;ctx.strokeStyle=plot.colors[i];ctx.lineWidth=plot.large?1.6:1.2;ctx.beginPath();let previous=null;
+    for(const p of view.points){const v=valueFor(p,plot.keys[i]);if(!Number.isFinite(v)){previous=null;continue;}
+      const x=xOf(p),y=yOf(v);if(previous&&p.t_us-previous.t_us<view.gapUs)ctx.lineTo(x,y);else ctx.moveTo(x,y);previous=p;
     }ctx.stroke();
-  }ctx.restore();$('empty').hidden=Boolean(all.length);
+  }
+  if(selected){const x=xOf(selected);ctx.strokeStyle='#1118';ctx.setLineDash([3,3]);ctx.beginPath();ctx.moveTo(x,top);ctx.lineTo(x,top+h);ctx.stroke();ctx.setLineDash([]);
+    for(let i=0;i<plot.keys.length;i++){const v=valueFor(selected,plot.keys[i]);if(enabled(i)&&Number.isFinite(v)){ctx.fillStyle=plot.colors[i];ctx.beginPath();ctx.arc(x,yOf(v),plot.large?3:2.5,0,Math.PI*2);ctx.fill();}}
+  }ctx.restore();
 }
-
+function draw(){lastView=makeView();selected=hoverFraction===null?null:nearest(lastView.points,(lastView.start+hoverFraction*lastView.seconds)*1e6);for(const p of plots)drawChart(p,lastView);$('empty').hidden=Boolean(lastView.all.length);}
+function updatePauseButton(){$('pause').textContent=paused?'▷':'Ⅱ';$('pause').classList.toggle('active',paused);$('pause').setAttribute('aria-label',paused?'Tiếp tục đồ thị':'Tạm dừng đồ thị');}
 $('connect').onclick=connect;$('demo').onclick=$('emptyDemo').onclick=startDemo;
 $('calibrate').onclick=()=>command('CALIBRATE');$('zero').onclick=()=>command('ZERO_YAW');
-$('import').onclick=()=>$('file').click();$('file').onchange=event=>{importFile(event.target.files[0]);event.target.value='';};
+$('import').onclick=()=>$('file').click();$('file').onchange=e=>{importFile(e.target.files[0]);e.target.value='';};
 $('clear').onclick=clearData;$('window').onchange=()=>{dirty=true;};
-$('pause').onclick=()=>{paused=!paused;$('pause').textContent=paused?'▷':'Ⅱ';$('pause').setAttribute('aria-label',paused?'Tiếp tục đồ thị':'Tạm dừng đồ thị');dirty=true;};
-$('record').onclick=()=>{
-  if(recording){finishCapture();return;}
-  if(!latest||source==='csv')return;recording=true;capture=[];$('record').textContent='■ Dừng và tải CSV';$('record').classList.add('recording');
-};
-document.querySelectorAll('[data-mode]').forEach(button=>button.onclick=()=>{
-  mode=button.dataset.mode;document.querySelectorAll('[data-mode]').forEach(b=>{b.classList.toggle('active',b===button);b.setAttribute('aria-selected',String(b===button));});visible=[true,true,true];renderLegend();dirty=true;
-});
-new ResizeObserver(()=>{dirty=true;}).observe(canvas);
+$('pause').onclick=()=>{paused=!paused;frozen=paused?buffer.values():[];hoverFraction=null;selected=null;updatePauseButton();dirty=true;};
+$('record').onclick=()=>{if(recording){finishCapture();return;}if(!(source==='demo'||source==='serial'&&port))return;recording=true;capture=[];$('record').textContent='■ Lưu CSV';$('record').classList.add('recording');};
+const resize=new ResizeObserver(()=>{dirty=true;});
+for(const plot of plots){resize.observe(plot.canvas);plot.canvas.addEventListener('pointermove',e=>{
+  if(e.pointerType==='touch')return;const r=plot.canvas.getBoundingClientRect(),left=plot.large?57:43,right=plot.large?13:7;
+  hoverFraction=Math.max(0,Math.min(1,(e.clientX-r.left-left)/(r.width-left-right)));dirty=true;
+});plot.canvas.addEventListener('pointerleave',()=>{hoverFraction=null;selected=null;dirty=true;});}
 function frame(now){
   if(now-rateStart>=1000&&source!=='csv'){frequency=rateCount*1000/(now-rateStart);rateCount=0;rateStart=now;}
-  if(now-lastPaint>50){updateReadings();if(dirty&&!paused){draw();dirty=false;}lastPaint=now;}
+  if(now-lastPaint>=50){if(dirty){draw();dirty=false;}updateReadings();lastPaint=now;}
   requestAnimationFrame(frame);
 }
-if(!('serial' in navigator))$('connectionHint').textContent='USB cần Chrome / Edge trên máy tính. Bạn vẫn có thể xem CSV hoặc thử giao diện.';
-window.addEventListener('beforeunload',event=>{if(recording&&capture.length){event.preventDefault();event.returnValue='';}});
+if(!('serial' in navigator))$('connectionHint').textContent='USB cần Chrome / Edge trên máy tính.';
+window.addEventListener('beforeunload',e=>{if(recording&&capture.length){e.preventDefault();e.returnValue='';}});
 renderLegend();controls();requestAnimationFrame(frame);

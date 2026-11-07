@@ -5,7 +5,7 @@
 #include "ttimu/detail/InavCore.h"
 
 namespace ttimu {
-constexpr const char* Version = "0.1.2";
+constexpr const char* Version = "0.1.3";
 struct Vector3 { float x,y,z; Vector3(float a=0,float b=0,float c=0):x(a),y(b),z(c){} };
 struct Quaternion { float w,x,y,z; Quaternion(float a=1,float b=0,float c=0,float d=0):w(a),x(b),y(c),z(d){} };
 enum class Sensor : uint8_t { Auto, MPU6050, MPU6500, ICM42605, ICM42688 };
@@ -40,6 +40,7 @@ struct Config {
     uint32_t maxGapUs = 20000;
     // Signed, right-handed axis permutation: e.g. {2,-1,3} = rotated PCB.
     int8_t axes[3] = {1, 2, 3};
+    int8_t eulerRollSign = 1; // Output convention only; native quaternion/body axes stay unchanged.
     static Config inav9(); // SPI ICM: sample 4 kHz, fusion 2 kHz.
 };
 
@@ -60,7 +61,7 @@ struct Calibration {
 
 struct Data {
     Quaternion quaternion; // Native INAV quaternion, Hamilton w,x,y,z.
-    float roll = 0, pitch = 0, yaw = 0; // Degrees; Euler signs as in INAV MSP.
+    float roll = 0, pitch = 0, yaw = 0; // Degrees; native INAV signs except configured eulerRollSign.
     Vector3 gyro;  // rad/s, calibrated and filtered body rates
     Vector3 accel; // m/s^2 including gravity, calibrated/filtered
     float temperatureC = 0;
@@ -99,6 +100,7 @@ public:
     State state() const { return state_; }
     Error error() const { return error_; }
     bool ready() const { return data_.ready; }
+    float rollRateRadS() const { return config_.eulerRollSign * data_.gyro.x; }
     const Config& config() const { return config_; }
     static const char* sensorName(Sensor sensor);
     static const char* errorName(Error error);

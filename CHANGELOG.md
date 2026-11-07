@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.1.3 — 2026-11-08
+
+- Compact monitor: top signal/temperature strip, one large combined angle chart
+  and six small gyro/acc charts visible together; remove sidebar slogans and tabs.
+- White chart backgrounds with black axis text, black workspace, Hatsune cyan
+  primary actions, and larger centered angle readouts.
+- Matching trace/readout colors, synchronized hover and pause snapshots while
+  serial reception/CSV capture continue. Roll/yaw plots unwrap continuously.
+- Reverse reported roll for the custom FC via `Config::eulerRollSign=-1`;
+  preserve native quaternion/body sensor axes, pitch and yaw. Add signed roll-rate helper.
+- Append `roll_sign` to CSV; support 17/25/26-column streams. Display and capture
+  use firmware values without applying an extra sign inversion.
+- Test 200 seconds of continuous simulated motion across 150 seconds and micros
+  wrap: production has no automatic recalibration schedule.
+
 ## 0.1.2 — 2026-11-07
 
 - Fix portable AHRS startup: wait for gyro calibration, seed tilt directly from

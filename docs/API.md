@@ -45,7 +45,11 @@ Mặc định: gyro anti-alias 250 Hz, gyro main PT1 60 Hz, acc biquad 15 Hz, gy
 - `Calibration` cho phép nạp offset/gain acc đã đo. Công cụ tự hiệu chuẩn acc sáu tư thế chưa có trong v0.1.2; hệ số mặc định là offset 0, gain 1.
 - Muốn dùng gyro bias đã lưu, đặt `startupCalibration=false`, gọi `begin()`, sau đó `setCalibration(saved)`. Cho tới khi nạp được hệ số đúng model/version, `ready()` vẫn false. NVS/flash và kiểm tra CRC của bản lưu do ứng dụng quản lý.
 
-CSV v0.1.2 giữ 17 cột đầu và thêm `qw,qx,qy,qz,ix,iy,iz,acc_weight`. `i*` là hiệu chỉnh tích phân nói trên, không phải bias raw hoặc tốc độ quay thật. Viewer đọc được cả log cũ lẫn mới. Sau khi cập nhật, tải lại trang bằng Ctrl+F5 trước khi kết nối USB.
+CSV v0.1.2 thêm `qw,qx,qy,qz,ix,iy,iz,acc_weight`; v0.1.3 thêm `roll_sign` ở cuối. `i*` là hiệu chỉnh tích phân nói trên, không phải bias raw hoặc tốc độ quay thật. Viewer đọc được 17/25/26 cột cũ và mới. Ctrl+F5 trang HTML sau khi cập nhật.
+
+`Config::eulerRollSign` mặc định +1; profile FC tự chế dùng -1 theo xác nhận người dùng. Nó chỉ đổi `data().roll` và roll trong CSV; pitch/yaw, quaternion và gyro/acc theo hệ body thuận giữ nguyên. Không lật riêng một trục sensor vì sẽ làm sai hệ tọa độ. Khi dùng tốc độ phản hồi theo dấu roll đã chọn, lấy `imu.rollRateRadS()` (thành phần gyro X đã áp dấu, đơn vị rad/s; không phải đạo hàm Euler tổng quát khi nghiêng lớn). Khi dựng roll native từ quaternion, nhân với `roll_sign` để so với cột roll.
+
+Không có tự hiệu chuẩn sau 150 giây hoặc chu kỳ cố định. Hiệu chuẩn được yêu cầu lúc `begin()`, qua `startCalibration()` hoặc lệnh `CALIBRATE` của monitor. Mốc 150 giây trong test PC là lần gọi chủ động của bài test; khi đang chạy, thư viện không tự đặt lại bias hay mốc yaw theo thời gian đó.
 
 ## ESP-IDF / STM32 HAL
 

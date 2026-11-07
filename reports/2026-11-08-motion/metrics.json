@@ -1,0 +1,65 @@
+{
+  "file": "ttimu-2026-11-07T17-18-31-583Z.csv",
+  "sha256": "21f157debec13ef5f5dc5f2ce5e0690b1da703233aa4ebff7c5b7cf8458f0aba",
+  "firmware_baseline": "0.1.2; 25-column diagnostic format",
+  "samples": 3556,
+  "duration_s": 35.717353,
+  "device_time_s": [
+    44.25704,
+    79.974393
+  ],
+  "contains_motion": true,
+  "peak_gyro_deg_per_s": 510.6314034338467,
+  "quaternion_norm_range": [
+    0.9999992877697463,
+    1.0000007214332398
+  ],
+  "temperature_range_c": [
+    30.25,
+    30.78
+  ],
+  "dt_range_us": [
+    1000.0,
+    1016.0
+  ],
+  "ready_all": true,
+  "gap_counter_range": [
+    0.0,
+    0.0
+  ],
+  "late_counter_range": [
+    0.0,
+    0.0
+  ],
+  "quiet_definition": "gyro norm < 0.3 deg/s, continuous section >= 1 s; not independent proof of physical stillness",
+  "quiet_segments": [
+    {
+      "device_start_s": 44.25704,
+      "device_end_s": 45.583263,
+      "duration_s": 1.3262229999999988,
+      "samples": 133,
+      "yaw_change_deg": 0.009999999999990905,
+      "roll_span_deg": 0.006000000000000227,
+      "pitch_span_deg": 0.02100000000000002
+    },
+    {
+      "device_start_s": 52.254511,
+      "device_end_s": 56.233158,
+      "duration_s": 3.9786470000000023,
+      "samples": 397,
+      "yaw_change_deg": 0.03700000000003456,
+      "roll_span_deg": 0.04599999999999982,
+      "pitch_span_deg": 0.007000000000000006
+    },
+    {
+      "device_start_s": 71.725734,
+      "device_end_s": 79.974393,
+      "duration_s": 8.248659000000004,
+      "samples": 822,
+      "yaw_change_deg": 0.08600000000001273,
+      "roll_span_deg": 0.07600000000000007,
+      "pitch_span_deg": 0.19100000000000006
+    }
+  ],
+  "limits": "Do not interpret whole-record heading change across motion as drift or extrapolate these short quiet sections to long-run accuracy."
+}

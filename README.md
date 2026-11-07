@@ -2,7 +2,7 @@
 
 Thư viện C++ xử lý IMU 6 trục cho **ESP32 / STM32**, với lõi tính góc port từ **INAV 9.0.1**.
 
-**v0.1.2 — bản thử nghiệm:** sửa khởi tạo tư thế và trục FC từ hai log đứng yên thực tế; đã kiểm thử phép tính và build ESP32-S3/STM32F411. Chưa có log đo lại bản sửa trên bo thật để xác nhận chất lượng điều khiển.
+**v0.1.3 — bản thử nghiệm:** 7 đồ thị cùng lúc, trạng thái/nhiệt độ ở đầu trang; đổi dấu roll trong firmware riêng FC. Người dùng đã xác nhận v0.1.2 ổn định hơn; kiểm tra dài hạn và phần cứng sau đổi dấu còn chờ đo.
 
 ## Có gì?
 
@@ -19,7 +19,7 @@ Thêm vào environment của robot trong `platformio.ini`, giữ cấu hình boa
 
 ```ini
 lib_deps =
-    https://github.com/thamtrung151/IMU-Library-by-TT.git#v0.1.2
+    https://github.com/thamtrung151/IMU-Library-by-TT.git#v0.1.3
 ```
 
 Adapter có sẵn dùng `framework = arduino` **trong PlatformIO**, không cần Arduino IDE. Repo riêng tư cần Git trên máy đăng nhập tài khoản có quyền truy cập. Ghim tag để dự án giữ đúng phiên bản thư viện.
@@ -81,7 +81,7 @@ Nạp một ví dụ ở trên (cả SPI/I²C đều gửi cùng định dạng 
 python tools/serve_viewer.py
 ```
 
-Trên Windows có thể nhấp đúp **Start Viewer.cmd**. Mở **http://localhost:8080** bằng Chrome/Edge → **Kết nối USB**, baud `921600`. Dữ liệu giữ trên máy; không cần tài khoản/cloud. Nút “Xem thử giao diện” dùng dữ liệu mô phỏng và luôn ghi rõ trên màn hình.
+Trên Windows nhấp đúp **Start Viewer.cmd**. Mở **http://localhost:8080** bằng Chrome/Edge → **Kết nối USB**, baud `921600`. Ctrl+F5 sau khi cập nhật. Góc lớn và sáu đồ thị gyro/acc hiện cùng lúc; rê chuột để đọc cùng một thời điểm, bấm các nhãn góc để ẩn/hiện đường. Nút **Mô phỏng** luôn có nhãn riêng.
 
 Các cấu hình PlatformIO STM32 kèm repo bật USB CDC cho BlackPill; nếu dùng USB–UART ngoài, chọn Serial và pin phù hợp bo.
 

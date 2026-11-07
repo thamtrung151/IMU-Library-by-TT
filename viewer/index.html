@@ -2,48 +2,51 @@
 <html lang="vi">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="theme-color" content="#0e151f"><title>IMU Library by TT — Monitor</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='10' fill='%232d81ff'/%3E%3Cpath d='M8 13h24M14 13v16M26 13v16' stroke='white' stroke-width='4'/%3E%3C/svg%3E">
+  <meta name="theme-color" content="#0c121b"><title>IMU Library by TT</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='10' fill='%2339c5bb'/%3E%3Cpath d='M8 13h24M14 13v16M26 13v16' stroke='%23061b19' stroke-width='4'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<header class="topbar"><a class="brand" href="./" aria-label="IMU Library by TT"><span class="brand-mark">TT</span><span>IMU Library <b>by TT</b><small>HARDWARE IN. GOOD DATA OUT.</small></span></a><div class="top-right"><span class="version">v0.1.2</span><a href="https://github.com/thamtrung151/IMU-Library-by-TT" target="_blank" rel="noreferrer">GitHub ↗</a></div></header>
+<header class="topbar">
+  <a class="brand" href="./"><span class="brand-mark">TT</span><strong>IMU Library <span>by TT</span></strong></a>
+  <div class="top-right"><span id="sourceBadge" class="badge">Chưa kết nối</span><span class="version">v0.1.3</span><a href="https://github.com/thamtrung151/IMU-Library-by-TT" target="_blank" rel="noreferrer">GitHub ↗</a></div>
+</header>
 <main>
-  <aside class="sidebar">
-    <div class="section-label">THIẾT BỊ</div>
-    <h1>Dữ liệu thật.<br>Nhìn rõ từng trục.</h1>
-    <p class="intro">Nối bo qua USB, giữ yên để hiệu chuẩn, rồi xem dữ liệu IMU trực tiếp.</p>
-    <label for="baud">Tốc độ serial</label><select id="baud"><option>921600</option><option>460800</option><option>230400</option><option>115200</option></select>
-    <button id="connect" class="primary"><span>↔</span> Kết nối USB</button>
-    <div id="connectionHint" class="hint">Chrome / Edge trên máy tính · Đóng Serial Monitor trước khi kết nối.</div>
-    <div class="separator"></div>
-    <div class="section-label">CÔNG CỤ</div>
-    <button id="calibrate" class="tool" disabled><span>◎</span> Hiệu chuẩn lại</button>
-    <button id="zero" class="tool" disabled><span>⌖</span> Đặt mốc yaw</button>
-    <button id="import" class="tool"><span>↥</span> Mở dữ liệu CSV</button><input type="file" id="file" accept=".csv,text/csv" hidden>
-    <button id="demo" class="tool"><span>▷</span> Xem thử giao diện</button>
-    <div class="sidebar-note"><span class="note-icon">i</span><p>Yaw là góc tương đối. Giữ bo yên khoảng 2 giây khi bật nguồn hoặc hiệu chuẩn lại.</p></div>
-    <div class="sidebar-footer"><span class="status-dot"></span> Xử lý trên bo. Hiển thị trên máy.</div>
-  </aside>
-  <section class="workspace">
-    <div class="workspace-heading"><div><div class="section-label">IMU MONITOR</div><h2>Tổng quan chuyển động</h2></div><div id="sourceBadge" class="badge">Chưa có dữ liệu</div></div>
-    <div id="notice" class="notice" role="status" aria-live="polite"><span class="notice-dot"></span><span id="noticeText">Sẵn sàng kết nối. Hoặc mở CSV để xem dữ liệu đã ghi.</span></div>
-    <div class="readings">
-      <article class="reading roll"><div><span class="channel-dot"></span> ROLL <small>nghiêng ngang</small></div><strong id="roll">—</strong><span class="unit">độ</span><div class="reading-line"></div></article>
-      <article class="reading pitch"><div><span class="channel-dot"></span> PITCH <small>chúi / ngẩng</small></div><strong id="pitch">—</strong><span class="unit">độ</span><div class="reading-line"></div></article>
-      <article class="reading yaw"><div><span class="channel-dot"></span> YAW <small>hướng tương đối</small></div><strong id="yaw">—</strong><span class="unit">độ</span><div class="reading-line"></div></article>
+  <section class="controls" aria-label="Kết nối và công cụ">
+    <label class="sr-only" for="baud">Baud serial</label><select id="baud" aria-label="Baud serial"><option>921600</option><option>460800</option><option>230400</option><option>115200</option></select>
+    <button id="connect" class="primary">↔ Kết nối USB</button><span class="control-divider"></span>
+    <button id="calibrate" disabled>Hiệu chuẩn lại</button><button id="zero" disabled>Đặt mốc yaw</button>
+    <button id="import">Mở CSV</button><input type="file" id="file" accept=".csv,text/csv" hidden>
+    <button id="record" disabled>● Ghi CSV</button><span id="recordInfo" class="muted"></span>
+    <button id="demo" class="quiet">Mô phỏng</button>
+    <span id="connectionHint" class="sr-only">Chrome / Edge · đóng ứng dụng khác đang giữ cổng COM.</span>
+  </section>
+  <section class="health-strip" aria-label="Tình trạng tín hiệu">
+    <div id="notice" class="signal" role="status" aria-live="polite"><i class="notice-dot"></i><span id="noticeText">Chưa có dữ liệu</span></div>
+    <div class="metric"><small>Nhận</small><strong id="frequency">—</strong><span>Hz</span></div>
+    <div class="metric temperature"><small>Nhiệt độ</small><strong id="temperature">—</strong><span>°C</span></div>
+    <div class="metric"><small>Chu kỳ</small><strong id="dt">—</strong><span>µs</span></div>
+    <div class="metric"><small>Mất mẫu</small><strong id="gaps">—</strong></div>
+    <div class="calib-state"><span id="calibLabel">Hiệu chuẩn</span><div class="progress"><i id="calibProgress"></i></div><span id="calibPercent">—</span></div>
+  </section>
+  <article class="chart-card attitude-card">
+    <div class="chart-toolbar">
+      <h1>Góc <small>°</small></h1><div id="legend" class="angle-readings" aria-label="Góc và bật tắt đường tín hiệu"></div>
+      <div class="chart-actions">
+        <label class="sr-only" for="window">Cửa sổ thời gian</label><select id="window"><option value="5">5 s</option><option value="10" selected>10 s</option><option value="30">30 s</option><option value="60">60 s</option><option value="all">Toàn bộ</option></select>
+        <button id="pause" class="icon-button" title="Tạm dừng hình; tiếp tục nhận và ghi dữ liệu" aria-label="Tạm dừng đồ thị">Ⅱ</button><button id="clear" class="icon-button" title="Xóa đồ thị" aria-label="Xóa đồ thị">↺</button>
+      </div>
     </div>
-    <article class="chart-card">
-      <div class="chart-toolbar"><div class="tabs" role="tablist" aria-label="Dữ liệu đồ thị"><button class="tab active" data-mode="attitude" role="tab" aria-selected="true">Góc</button><button class="tab" data-mode="gyro" role="tab" aria-selected="false">Gyroscope</button><button class="tab" data-mode="accel" role="tab" aria-selected="false">Accelerometer</button></div><div class="chart-actions"><label class="sr-only" for="window">Cửa sổ thời gian</label><select id="window"><option value="5">5 giây</option><option value="10" selected>10 giây</option><option value="30">30 giây</option></select><button id="pause" class="icon-button" title="Tạm dừng đồ thị" aria-label="Tạm dừng đồ thị">Ⅱ</button><button id="clear" class="icon-button" title="Xóa đồ thị" aria-label="Xóa đồ thị">↺</button></div></div>
-      <div class="chart-meta"><span id="chartUnit">Góc (°) · yaw nối liên tục qua 360°</span><div id="legend" class="legend"></div></div>
-      <div class="canvas-wrap"><canvas id="plot" role="img" aria-label="Đồ thị dữ liệu IMU theo thời gian"></canvas><div id="empty" class="empty-state"><div class="wave-icon">∿</div><h3>Chờ chuyển động đầu tiên</h3><p>Kết nối bo để xem đường tín hiệu.<br>Dữ liệu được giữ riêng trên máy của bạn.</p><button id="emptyDemo">Thử với dữ liệu mô phỏng ↗</button></div></div>
-      <div class="chart-footer"><span><i id="liveDot"></i> <span id="streamLabel">CHƯA KẾT NỐI</span></span><span id="sampleCount">0 mẫu</span></div>
-    </article>
-    <div class="bottom-grid">
-      <article class="health-card"><div class="card-title">TÌNH TRẠNG TÍN HIỆU <span>●</span></div><div class="health-grid"><div><small>Tần số nhận</small><strong id="frequency">— <em>Hz</em></strong></div><div><small>Nhiệt độ chip</small><strong id="temperature">— <em>°C</em></strong></div><div><small>Chu kỳ xử lý</small><strong id="dt">— <em>µs</em></strong></div><div><small>Khoảng mất mẫu</small><strong id="gaps">—</strong></div></div><div class="calib-row"><span id="calibLabel">Hiệu chuẩn</span><div class="progress"><i id="calibProgress"></i></div><span id="calibPercent">—</span></div></article>
-      <article class="capture-card"><div class="card-title">GHI LẠI ĐỂ ĐỐI CHIẾU <span>↧</span></div><h3>Mỗi lần chạy,<br>một bản dữ liệu.</h3><p>Lưu góc, gyro, acc và nhiệt độ thành CSV để xem lại hoặc xử lý sau.</p><button id="record" class="secondary" disabled>● Bắt đầu ghi CSV</button><span id="recordInfo" class="hint">Ghi từ lúc bạn nhấn nút.</span></article>
-    </div>
-    <footer class="workspace-footer"><span>IMU Library by TT</span><span>ESP32 / STM32 · ICM426xx / MPU6xxx</span></footer>
+    <div class="canvas-wrap"><canvas id="plot" role="img" aria-label="Đồ thị chung Roll Pitch Yaw theo thời gian"></canvas><div id="empty" class="empty-state"><span>Chưa có dữ liệu</span><button id="emptyDemo">Mô phỏng</button></div></div>
+    <div class="chart-footer"><span><i id="liveDot"></i><span id="streamLabel">CHƯA KẾT NỐI</span></span><span id="cursorLabel"></span><span id="sampleCount">0 mẫu</span></div>
+  </article>
+  <section class="sensor-grid" aria-label="Sáu đồ thị gyro và gia tốc">
+    <article class="sensor-card axis-x"><div class="sensor-heading"><h2><i></i>Gyro X</h2><div><strong id="gx">—</strong><span>rad/s</span></div></div><canvas id="plot-gx" role="img" aria-label="Đồ thị Gyro X"></canvas></article>
+    <article class="sensor-card axis-y"><div class="sensor-heading"><h2><i></i>Gyro Y</h2><div><strong id="gy">—</strong><span>rad/s</span></div></div><canvas id="plot-gy" role="img" aria-label="Đồ thị Gyro Y"></canvas></article>
+    <article class="sensor-card axis-z"><div class="sensor-heading"><h2><i></i>Gyro Z</h2><div><strong id="gz">—</strong><span>rad/s</span></div></div><canvas id="plot-gz" role="img" aria-label="Đồ thị Gyro Z"></canvas></article>
+    <article class="sensor-card axis-x"><div class="sensor-heading"><h2><i></i>Acc X</h2><div><strong id="ax">—</strong><span>m/s²</span></div></div><canvas id="plot-ax" role="img" aria-label="Đồ thị gia tốc X"></canvas></article>
+    <article class="sensor-card axis-y"><div class="sensor-heading"><h2><i></i>Acc Y</h2><div><strong id="ay">—</strong><span>m/s²</span></div></div><canvas id="plot-ay" role="img" aria-label="Đồ thị gia tốc Y"></canvas></article>
+    <article class="sensor-card axis-z"><div class="sensor-heading"><h2><i></i>Acc Z</h2><div><strong id="az">—</strong><span>m/s²</span></div></div><canvas id="plot-az" role="img" aria-label="Đồ thị gia tốc Z"></canvas></article>
   </section>
 </main>
 <div id="toast" class="toast" role="status" aria-live="polite"></div>

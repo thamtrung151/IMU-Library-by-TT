@@ -75,6 +75,35 @@ static void pendingGravityAndAxes() {
     CHECK(std::fabs(board.data().gyro.y-inavRadians(10))<1e-5f);
     CHECK(std::fabs(board.data().gyro.z-inavRadians(30))<1e-5f);
 }
+static void rollConventionAndContinuousRun() {
+    Config native;native.startupCalibration=false;native.gyroKalman=false;
+    native.gyroAntiAliasHz=native.gyroLowpassHz=native.accelLowpassHz=0;
+    Config reversed=native;reversed.eulerRollSign=fc::EulerRollSign;
+    CHECK(reversed.eulerRollSign==-1);
+    IMU a,b;CHECK(a.beginRaw(Sensor::ICM42605,native));CHECK(b.beginRaw(Sensor::ICM42605,reversed));
+    Calibration cal;cal.sensor=Sensor::ICM42605;CHECK(a.setCalibration(cal));CHECK(b.setCalibration(cal));
+    RawSample s;s.temperatureC=25;s.accel[0]=-530;s.accel[1]=989;s.accel[2]=1713;s.gyro[0]=164;
+    CHECK(a.feed(s));CHECK(b.feed(s));CHECK(a.ready()&&b.ready());
+    CHECK(std::fabs(a.data().roll+b.data().roll)<1e-5f);
+    CHECK(a.data().pitch==b.data().pitch&&a.data().yaw==b.data().yaw);
+    CHECK(a.data().quaternion.w==b.data().quaternion.w&&a.data().quaternion.x==b.data().quaternion.x);
+    CHECK(a.data().quaternion.y==b.data().quaternion.y&&a.data().quaternion.z==b.data().quaternion.z);
+    CHECK(a.data().gyro.x==b.data().gyro.x);CHECK(a.rollRateRadS()==-b.rollRateRadS());
+    Config invalid;invalid.eulerRollSign=0;IMU bad;CHECK(!bad.beginRaw(Sensor::ICM42605,invalid));
+
+    // Production must not schedule calibration at 150 s. Cross that time while
+    // rotating, and cross the micros() wrap as well. No manual calibration call.
+    IMU continuous;CHECK(continuous.beginRaw(Sensor::ICM42605));
+    for(uint32_t ms=0;ms<200000;++ms){
+        RawSample input;input.timestampUs=0xFFFF0000u+ms*1000;input.temperatureC=25;input.accel[2]=2048;
+        if(ms>=2500)input.gyro[2]=82; // 5 deg/s, after startup calibration.
+        continuous.feed(input);
+        if(ms>2100&&ms%1000==0)CHECK(continuous.ready());
+    }
+    CHECK(continuous.ready());CHECK(continuous.diagnostics().calibrationRetries==0);
+    CHECK(continuous.calibration().gyroBiasCounts[2]==0);CHECK(continuous.data().timestampUs==199999000);
+    CHECK(continuous.diagnostics().calibrationProgress==1);CHECK(continuous.state()==State::Ready);
+}
 static void trace(const char* path) {
     FILE* f=std::fopen(path,"w");CHECK(f);
     std::fprintf(f,"t,old_roll,old_pitch,old_yaw,new_roll,new_pitch,new_yaw,old_iz,new_iz\n");
@@ -92,4 +121,4 @@ static void trace(const char* path) {
     }
     std::fclose(f);
 }
-int main(int argc,char** argv){allFaces();recalibration();pendingGravityAndAxes();if(argc==2)trace(argv[1]);std::printf("PASS startup: %u checks\n",checks);}
+int main(int argc,char** argv){allFaces();recalibration();pendingGravityAndAxes();rollConventionAndContinuousRun();if(argc==2)trace(argv[1]);std::printf("PASS startup: %u checks\n",checks);}

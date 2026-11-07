@@ -22,8 +22,9 @@ import matplotlib.pyplot as plt
 def load(path):
     with path.open(encoding='utf-8-sig', newline='') as f:
         rows = list(csv.DictReader(line for line in f if not line.startswith('#')))
-    result = {name: np.array([float(r[name]) for r in rows]) for name in rows[0]}
-    if not all(np.isfinite(v).all() for v in result.values()):
+    result = {name: np.array([float(r[name]) if r[name] else np.nan for r in rows]) for name in rows[0]}
+    required=('t_us','roll','pitch','yaw','gx','gy','gz','ax','ay','az','temp','ready','dt_us','gaps','retries','late')
+    if not all(np.isfinite(result[k]).all() for k in required):
         raise ValueError('Non-finite telemetry in ' + str(path))
     if not np.all(np.diff(result['t_us']) > 0):
         raise ValueError('Split at reset/nonmonotonic timestamp before analysis')
@@ -46,7 +47,8 @@ def analyze(path):
     acc = np.column_stack([d[k] for k in ('ax', 'ay', 'az')])
     norm = np.linalg.norm(acc, axis=1)
     gyro = np.column_stack([d[k] for k in ('gx', 'gy', 'gz')])
-    phi, theta = np.radians(d['roll']), np.radians(d['pitch'])
+    roll_sign=np.where(np.isfinite(d.get('roll_sign',np.ones_like(t))),d.get('roll_sign',np.ones_like(t)),1)
+    phi, theta = np.radians(d['roll']*roll_sign), np.radians(d['pitch'])
     # Native INAV output yaw = minus conventional Euler yaw.
     yaw_rate = -(np.sin(phi) * gyro[:, 1] + np.cos(phi) * gyro[:, 2]) / np.cos(theta)
     gyro_heading = np.degrees(integrate(t, yaw_rate))

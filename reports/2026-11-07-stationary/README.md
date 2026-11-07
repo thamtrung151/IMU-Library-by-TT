@@ -38,7 +38,7 @@ Log 1 và phép tính P khớp dạng hội tụ rất lớn. Test C++ với **g
 - Sửa profile trục bo. Dấu X/Y theo đầu robot còn cần kiểm tra: `CW90_DEG` là lựa chọn khác cách 180° cũng thỏa log đứng yên và việc đổi chỗ. Không tự suy được phía trước robot từ dữ liệu tĩnh.
 - CSV thêm quaternion `qw/qx/qy/qz`, integral `ix/iy/iz` (rad/s) và `acc_weight`. Viewer tiếp tục đọc CSV 17 cột cũ.
 
-Các test mới kiểm tra sáu mặt gravity, bắt đầu úp/nghiêng, gravity lỗi, ready, map gyro/acc cùng hệ trục, và recalibrate ở uptime 150 giây. Test native update đối chiếu full hàm INAV vẫn chạy riêng; không tuyên bố toàn pipeline còn byte-equivalent sau thay đổi startup.
+Các test mới kiểm tra sáu mặt gravity, bắt đầu úp/nghiêng, gravity lỗi, ready, map gyro/acc cùng hệ trục, và recalibrate ở uptime 150 giây **bằng một lần gọi chủ động trong test PC**. Firmware không có lịch tự hiệu chuẩn ở mốc đó. Test native update đối chiếu full hàm INAV vẫn chạy riêng; không tuyên bố toàn pipeline còn byte-equivalent sau thay đổi startup.
 
 ## Đồ thị và số liệu
 

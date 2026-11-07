@@ -21,6 +21,7 @@ void setup() {
     sensorSPI.begin();
     ttimu::Config config;
     for (unsigned axis = 0; axis < 3; ++axis) config.axes[axis] = fc::Axes[axis];
+    config.eulerRollSign = fc::EulerRollSign;
     initialized = imu.begin(sensorBus, ttimu::Sensor::ICM42605, config);
     if (initialized) monitor.begin();
 }

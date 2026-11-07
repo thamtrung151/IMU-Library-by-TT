@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(TTIMU VERSION 0.1.2 LANGUAGES CXX)
+project(TTIMU VERSION 0.1.3 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_library(ttimu src/IMULibrary.cpp src/ttimu/detail/InavCore.cpp src/ttimu/detail/InavMath.cpp src/ttimu/detail/InavStartup.cpp)

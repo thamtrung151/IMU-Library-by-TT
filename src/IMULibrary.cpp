@@ -25,7 +25,8 @@ bool validConfig(const Config& c, Sensor s, bool spi) {
         c.fusionRateHz>c.sampleRateHz || c.fusionRateHz<100 || c.sampleRateHz>8000 ||
         c.gyroCalibrationMs<500 || c.gyroCalibrationMs>30000 ||
         !std::isfinite(c.gyroMovementThreshold) || c.gyroMovementThreshold<=0 ||
-        c.maxGapUs<2000 || c.maxGapUs>100000 || !validAxes(c.axes) || (c.gyroKalman && c.kalmanQ==0)) return false;
+        c.maxGapUs<2000 || c.maxGapUs>100000 || !validAxes(c.axes) ||
+        (c.eulerRollSign!=1 && c.eulerRollSign!=-1) || (c.gyroKalman && c.kalmanQ==0)) return false;
     if (c.gyroAntiAliasHz>=c.sampleRateHz/2 || c.gyroLowpassHz>=c.fusionRateHz/2 || c.accelLowpassHz>=c.fusionRateHz/2) return false;
     if (!spi && c.sampleRateHz>1000) return false;
     if (s==Sensor::MPU6050 || s==Sensor::MPU6500) return c.sampleRateHz==500 || c.sampleRateHz==1000;
@@ -249,7 +250,7 @@ bool IMU::feed(const RawSample& raw) {
 
 void IMU::publish(const fpVector3_t& g,const fpVector3_t& a,const RawSample& raw,uint64_t time) {
     data_.quaternion={core_.orientation.q0,core_.orientation.q1,core_.orientation.q2,core_.orientation.q3};
-    data_.roll=atan2_approx(core_.rMat[2][1],core_.rMat[2][2])*(180/M_PIf);
+    data_.roll=config_.eulerRollSign*atan2_approx(core_.rMat[2][1],core_.rMat[2][2])*(180/M_PIf);
     data_.pitch=(0.5f*M_PIf-acos_approx(constrainf(-core_.rMat[2][0],-1,1)))*(180/M_PIf);
     data_.yaw=-atan2_approx(core_.rMat[1][0],core_.rMat[0][0])*(180/M_PIf);
     if(data_.yaw<0)data_.yaw+=360;

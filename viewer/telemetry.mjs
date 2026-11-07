@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 const LEGACY_COLUMNS = ['t_us','roll','pitch','yaw','gx','gy','gz','ax','ay','az','temp','ready','dt_us','gaps','calib','retries','late'];
-export const COLUMNS = [...LEGACY_COLUMNS,'qw','qx','qy','qz','ix','iy','iz','acc_weight'];
+const DIAGNOSTIC_COLUMNS = [...LEGACY_COLUMNS,'qw','qx','qy','qz','ix','iy','iz','acc_weight'];
+export const COLUMNS = [...DIAGNOSTIC_COLUMNS,'roll_sign'];
 const REQUIRED = ['t_us','roll','pitch','yaw'];
 
 export class TelemetryParser {
@@ -31,7 +32,7 @@ export class TelemetryParser {
       return;
     }
     // The example emits a header once; reconnects can begin in the middle of a stream.
-    const header = this.header ?? (fields.length === COLUMNS.length ? COLUMNS : fields.length === LEGACY_COLUMNS.length ? LEGACY_COLUMNS : null);
+    const header = this.header ?? (fields.length === COLUMNS.length ? COLUMNS : fields.length === DIAGNOSTIC_COLUMNS.length ? DIAGNOSTIC_COLUMNS : fields.length === LEGACY_COLUMNS.length ? LEGACY_COLUMNS : null);
     if (!header || fields.length !== header.length) { this.errors++; return; }
     const sample = {};
     for (let i = 0; i < header.length; i++) {
@@ -42,13 +43,14 @@ export class TelemetryParser {
     }
     if (!REQUIRED.every(k => Number.isFinite(sample[k])) || !Number.isSafeInteger(sample.t_us) || sample.t_us < 0) { this.errors++; return; }
     if (sample.ready !== undefined && sample.ready !== null && sample.ready !== 0 && sample.ready !== 1) { this.errors++; return; }
+    if (sample.roll_sign !== undefined && sample.roll_sign !== null && sample.roll_sign !== 1 && sample.roll_sign !== -1) { this.errors++; return; }
     this.onSample(sample);
   }
 }
 
 export class TraceBuffer {
   constructor(capacity = 10000) { this.capacity = capacity; this.clear(); }
-  clear() { this.points = new Array(this.capacity); this.start = 0; this.length = 0; this.lastYaw = null; this.yawUnwrapped = 0; this.lastTime = null; }
+  clear() { this.points = new Array(this.capacity); this.start = 0; this.length = 0; this.lastYaw = null; this.yawUnwrapped = 0; this.lastRoll = null; this.rollUnwrapped = 0; this.lastTime = null; }
   add(sample) {
     if (this.lastTime !== null && sample.t_us < this.lastTime) this.clear(); // Device reset or a new CSV run.
     let yaw = sample.yaw;
@@ -58,7 +60,12 @@ export class TraceBuffer {
       this.yawUnwrapped += change;
     } else this.yawUnwrapped = yaw;
     this.lastYaw = yaw; this.lastTime = sample.t_us;
-    const point = {...sample, yaw_unwrapped: this.yawUnwrapped};
+    let roll=sample.roll;
+    if(Number.isFinite(roll)){
+      this.rollUnwrapped=this.lastRoll===null?roll:this.rollUnwrapped+((roll-this.lastRoll+180)%360+360)%360-180;
+      this.lastRoll=roll;
+    }
+    const point = {...sample, yaw_unwrapped: this.yawUnwrapped, roll_unwrapped:Number.isFinite(roll)?this.rollUnwrapped:undefined};
     const index = (this.start + this.length) % this.capacity;
     this.points[index] = point;
     if (this.length < this.capacity) this.length++; else this.start = (this.start + 1) % this.capacity;

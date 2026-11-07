@@ -40,9 +40,19 @@ test('CSV header order is honored and a repeated header can change optional fiel
 
 test('new firmware diagnostic columns survive a headerless USB reconnect and CSV round trip', () => {
   const samples=[];const p=new TelemetryParser(s=>samples.push(s));
-  const values=[1234,1,2,3,0,0,0,0,0,9.8,25,1,1000,0,1,0,0,1,0,0,0,0.001,-0.002,0.003,0.99];
+  const values=[1234,1,2,3,0,0,0,0,0,9.8,25,1,1000,0,1,0,0,1,0,0,0,0.001,-0.002,0.003,0.99,-1];
   const row=values.join(',');p.push(row+'\n');
   assert.equal(samples.length,1);assert.equal(samples[0].iz,0.003);assert.equal(samples[0].qw,1);
-  assert.equal(samples[0].acc_weight,0.99);assert.equal(csvRow(samples[0]),row);
+  assert.equal(samples[0].acc_weight,0.99);assert.equal(samples[0].roll_sign,-1);assert.equal(csvRow(samples[0]),row);
   p.push(COLUMNS.join(',')+'\n'+row+'\n');assert.equal(samples.length,2);
+});
+
+test('old diagnostic firmware still reconnects without a header; roll unwrap matches the plotted number', () => {
+  const samples=[];const p=new TelemetryParser(s=>samples.push(s));
+  p.push([1234,179,0,359,0,0,0,0,0,9.8,25,1,1000,0,1,0,0,1,0,0,0,0,0,0,1].join(',')+'\n');
+  assert.equal(samples.length,1);assert.equal(samples[0].roll_sign,undefined);
+  const b=new TraceBuffer(3);b.add(samples[0]);b.add({...samples[0],t_us:2000,roll:-179,yaw:1});
+  assert.equal(b.values()[1].roll_unwrapped,181);assert.equal(b.values()[1].yaw_unwrapped,361);
+  const bad=[1234,0,0,0,0,0,0,0,0,9.8,25,1,1000,0,1,0,0,1,0,0,0,0,0,0,1,0].join(',');
+  p.push(bad+'\n');assert.equal(p.errors,1);
 });
