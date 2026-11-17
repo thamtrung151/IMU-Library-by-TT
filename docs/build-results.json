@@ -1,10 +1,10 @@
 {
-  "date": "2026-11-08",
-  "release": "0.1.4",
+  "date": "2026-11-18",
+  "release": "0.1.5",
   "hardware_runtime_tested": false,
   "cpu_or_drift_benchmarked": false,
   "host_cpp11": "GCC 15.2.0 MinGW Windows",
-  "host_imu_instance_size_bytes": 2448,
+  "host_imu_instance_size_bytes": 2472,
   "inav_reference_steps": 100000,
   "max_host_quaternion_component_distance": 0,
   "viewer_parser_tests": 10,
@@ -12,36 +12,43 @@
     {
       "environment": "esp32s3",
       "status": "compiled_and_linked",
-      "static_ram_bytes": 21956,
-      "flash_bytes": 286333,
+      "static_ram_bytes": 21972,
+      "flash_bytes": 287697,
       "scope": "entire_example_including_Arduino_core_and_USB"
     },
     {
       "environment": "stm32f411",
       "status": "compiled_and_linked",
-      "static_ram_bytes": 8208,
-      "flash_bytes": 47888,
+      "static_ram_bytes": 8224,
+      "flash_bytes": 49016,
       "scope": "entire_example_including_Arduino_core_and_USB"
     },
     {
       "environment": "esp32s3_i2c",
       "status": "compiled_and_linked",
-      "static_ram_bytes": 21788,
-      "flash_bytes": 288209,
+      "static_ram_bytes": 21804,
+      "flash_bytes": 289561,
       "scope": "entire_example_including_Arduino_core_and_USB"
     },
     {
       "environment": "stm32f411_i2c",
       "status": "compiled_and_linked",
-      "static_ram_bytes": 8212,
-      "flash_bytes": 53892,
+      "static_ram_bytes": 8228,
+      "flash_bytes": 55020,
+      "scope": "entire_example_including_Arduino_core_and_USB"
+    },
+    {
+      "environment": "esp32s3_qmi8658b",
+      "status": "compiled_and_linked",
+      "static_ram_bytes": 21804,
+      "flash_bytes": 289521,
       "scope": "entire_example_including_Arduino_core_and_USB"
     },
     {
       "environment": "tt_f411_icm42605",
       "status": "compiled_and_linked",
-      "static_ram_bytes": 8216,
-      "flash_bytes": 47968,
+      "static_ram_bytes": 8232,
+      "flash_bytes": 49096,
       "scope": "entire_example_including_Arduino_core_and_USB"
     }
   ],
@@ -89,9 +96,33 @@
       "ZERO_ALL command and zero-reference telemetry"
     ],
     "appearance": "white canvases, black axes text and outer workspace, #39C5BB primary buttons, 36px centered angle readouts",
-    "cached_upgrade_without_clearing_cache": true
+    "cached_upgrade_without_clearing_cache": true,
+    "verified_release": "0.1.4; v0.1.5 changes only the displayed version and reruns parser/HTTP tests"
   },
-  "embedded_local_footprint_verified_release": "0.1.4",
+  "embedded_local_footprint_verified_release": "0.1.5",
   "viewer_http_regression_tests": 3,
-  "zero_reference_regression": "tilted pose, relative 90-degree body rotation, repeated zero/calibration, invalid-gravity wait; native fusion/body measurements unchanged"
+  "zero_reference_regression": "tilted pose, relative 90-degree body rotation, repeated zero/calibration, invalid-gravity wait; native fusion/body measurements unchanged",
+  "host_test_suites": 6,
+  "qmi8658b": {
+    "host_register_checks": 1088,
+    "hardware_runtime_tested": false,
+    "datasheet": "QST-PD-B002-22 Rev D",
+    "buses_modeled": [
+      "I2C",
+      "4-wire SPI"
+    ],
+    "example": "esp32s3_qmi8658b",
+    "sda_gpio": 8,
+    "scl_gpio": 9,
+    "i2c_address": "0x6A (SA0 high)",
+    "i2c_hz": 400000,
+    "nominal_odr_hz": [
+      896.8,
+      448.4
+    ],
+    "gyro_lsb_per_dps": 16,
+    "acc_lsb_per_g": 2048,
+    "runtime_lock_polling": "at most two STATUSINT reads, then locked 14-byte burst; no delay calls",
+    "on_demand_calibration_enabled": false
+  }
 }
