@@ -5,10 +5,10 @@
 #include "ttimu/detail/InavCore.h"
 
 namespace ttimu {
-constexpr const char* Version = "0.1.4";
+constexpr const char* Version = "0.1.5";
 struct Vector3 { float x,y,z; Vector3(float a=0,float b=0,float c=0):x(a),y(b),z(c){} };
 struct Quaternion { float w,x,y,z; Quaternion(float a=1,float b=0,float c=0,float d=0):w(a),x(b),y(c),z(d){} };
-enum class Sensor : uint8_t { Auto, MPU6050, MPU6500, ICM42605, ICM42688 };
+enum class Sensor : uint8_t { Auto, MPU6050, MPU6500, ICM42605, ICM42688, QMI8658B };
 enum class Error : uint8_t { None, NotStarted, Bus, NotFound, WrongSensor, InvalidConfig, InvalidSample, TimingGap, CalibrationMismatch };
 enum class State : uint8_t { Stopped, Calibrating, Ready, WaitingForCalibration, Error, WaitingForAttitude };
 
@@ -42,6 +42,7 @@ struct Config {
     int8_t axes[3] = {1, 2, 3};
     int8_t eulerRollSign = 1; // Output convention only; native quaternion/body axes stay unchanged.
     static Config inav9(); // SPI ICM: sample 4 kHz, fusion 2 kHz.
+    static Config qmi8658b(); // 1000 rate class -> nominal 896.8 Hz, SPI or I2C.
 };
 
 struct RawSample {
@@ -105,6 +106,9 @@ public:
     bool ready() const { return data_.ready; }
     float rollRateRadS() const { return config_.eulerRollSign * data_.gyro.x; }
     const Config& config() const { return config_; }
+    // Nominal hardware rates after sensor mapping, not measured throughput.
+    float sampleRateHz() const { return sampleRateHz_; }
+    float fusionRateHz() const { return fusionRateHz_; }
     static const char* sensorName(Sensor sensor);
     static const char* errorName(Error error);
 private:
@@ -120,6 +124,8 @@ private:
     State state_ = State::Stopped;
     Error error_ = Error::NotStarted;
     Config config_;
+    float sampleRateHz_=1000,fusionRateHz_=1000,gyroScale_=1.0f/16.4f;
+    uint32_t samplePeriodUs_=1000,fusionPeriodUs_=1000;
     Calibration calibration_;
     Data data_;
     Diagnostics diagnostics_;

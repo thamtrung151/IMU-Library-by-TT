@@ -32,6 +32,8 @@ imu.begin(bus, ttimu::Sensor::ICM42688, cfg);
 
 `Config::inav9()` chọn sample 4000 Hz/fusion 2000 Hz cho **ICM qua SPI**. MPU và I²C dùng 500 hoặc 1000 Hz. Tần số fusion phải chia hết tần số sample. Filter phải thấp hơn Nyquist; cấu hình không hợp lệ bị từ chối.
 
+**QMI8658B:** chọn `Config::qmi8658b()`; rate class 1000/500 ánh xạ sang ODR danh định 896,8/448,4 Hz trên cả SPI/I²C. `imu.sampleRateHz()` và `imu.fusionRateHz()` trả tốc độ danh định sau ánh xạ; `config()` vẫn giữ class đã yêu cầu. Hệ số lọc và lịch đọc dùng tốc độ tương ứng, tích phân dùng timestamp thực; kiểm tra Nyquist theo tốc độ đã ánh xạ. Không dùng preset `inav9()` cho QMI. Xem [ví dụ GPIO8/9, 0x6A](QMI8658B.md).
+
 Mặc định: gyro anti-alias 250 Hz, gyro main PT1 60 Hz, acc biquad 15 Hz, gyro Kalman bật, window gyro 2000 ms, threshold raw 32. `gyroKalman=false` dành cho phép thử có kiểm soát, không tự coi là profile tương đương.
 
 `setArmed(bool)` giữ ngữ nghĩa INAV để kiểm soát startup gain/rate-ignore; mặc định false phù hợp dùng FC làm bộ đo không arm. `setRateSetpoint(Vector3)` nhận **độ/giây** nếu ứng dụng muốn cung cấp rate target cho gyro Kalman, mặc định bằng 0. Không có PID điều khiển động cơ bên trong thư viện.
@@ -62,4 +64,6 @@ Không có tự hiệu chuẩn sau 150 giây hoặc chu kỳ cố định. Hiệ
 
 Kế thừa `RegisterBus`, cung cấp `read`, `write`, `delayMs`, `micros32`, `isSPI`. Read phải đọc cả burst trong một transaction. Giữ CS thấp suốt địa chỉ và payload; write MPU không quá 1 MHz. Các hàm delay chỉ được dùng khi cấu hình chip, không nằm trong vòng xử lý bình thường.
 
-Có thể bỏ transport và gọi `beginRaw(sensor, config)` / `feed(rawSample)` để chạy custom acquisition hoặc replay. Raw phải đúng ±2000 dps, ±16g/2048 LSB/g và timestamp duy nhất theo rate đã cấu hình; không feed dữ liệu đã lọc/scale vào API raw này.
+Có thể bỏ transport và gọi `beginRaw(sensor, config)` / `feed(rawSample)` để chạy custom acquisition hoặc replay. Raw MPU/ICM phải đúng ±2000 dps/16,4 LSB mỗi °/s; QMI8658B dùng ±2048 dps/**16 LSB mỗi °/s**. Acc của các profile là ±16 g/2048 LSB/g; nhiệt độ trong RawSample đã ở °C. Cấp timestamp duy nhất theo rate thực, không feed dữ liệu đã lọc/scale vào API raw. Gyro bias trong Calibration là counts native của đúng sensor.
+
+QMI dùng SyncSample và burst khóa mẫu ngay cả khi `checkDataReady=false`; trạng thái chưa có mẫu/chưa khóa không sinh update. RegisterBus phải giữ nguyên giao dịch burst 14 byte để byte GZ_H cuối cùng giải phóng khóa. Driver I²C thực hiện handshake AHB clock gating lúc begin(), có timeout; runtime không gọi delay để chờ khóa.

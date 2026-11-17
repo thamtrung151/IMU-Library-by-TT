@@ -2,15 +2,15 @@
 
 Thư viện C++ xử lý IMU 6 trục cho **ESP32 / STM32**, với lõi tính góc port từ **INAV 9.0.1**.
 
-**v0.1.4 — bản thử nghiệm:** đặt cả ba góc về 0, tích hợp vào hiệu chuẩn lại; sửa cache giao diện và hiển thị cộng vòng. Nạp firmware mới để dùng chức năng đặt mốc mới. Kiểm tra dài hạn trên bo còn chờ đo.
+**v0.1.5 — bản thử nghiệm:** thêm QMI8658B và ví dụ ESP32-S3 I²C GPIO8/9, địa chỉ 0x6A. Driver đã kiểm thử trên máy và build; chất lượng trên QMI8658B thật còn chờ đo.
 
 ## Có gì?
 
-- ICM42605, ICM42688-P, MPU6500: SPI hoặc I²C. MPU6050: I²C.
+- ICM42605, ICM42688-P, MPU6500, QMI8658B: SPI hoặc I²C. MPU6050: I²C.
 - Tự hiệu chuẩn gyro khi khởi động; rung thì tự thử lại.
 - Bộ lọc gyro/acc, gyro Kalman, quaternion và roll/pitch/yaw độ phân giải float.
 - Đọc thêm gyro (rad/s), acc (m/s²), nhiệt độ, timestamp và trạng thái sẵn sàng.
-- Trang HTML xem đồ thị qua USB, mở/ghi CSV, hiệu chuẩn lại và đặt mốc yaw.
+- Trang HTML xem đồ thị qua USB, mở/ghi CSV, hiệu chuẩn lại và đặt cả ba góc về 0.
 - Lõi không cấp phát heap khi chạy. Có interface để dùng ESP-IDF/STM32 HAL ngoài Arduino.
 
 ## Dùng trong dự án PlatformIO
@@ -19,7 +19,7 @@ Thêm vào environment của robot trong `platformio.ini`, giữ cấu hình boa
 
 ```ini
 lib_deps =
-    https://github.com/thamtrung151/IMU-Library-by-TT.git#v0.1.4
+    https://github.com/thamtrung151/IMU-Library-by-TT.git#v0.1.5
 ```
 
 Adapter có sẵn dùng `framework = arduino` **trong PlatformIO**, không cần Arduino IDE. Repo riêng tư cần Git trên máy đăng nhập tài khoản có quyền truy cập. Ghim tag để dự án giữ đúng phiên bản thư viện.
@@ -35,6 +35,14 @@ Mẫu dự án độc lập: [platformio.ini](examples/PlatformIO_Robot/platform
 
 ## Nối dây và chạy
 
+**ESP32-S3 + QMI8658B theo sơ đồ của bạn:** SDA **GPIO8**, SCL **GPIO9**, CS/SDO-SA0 lên 3,3 V → địa chỉ **0x6A**. Build/nạp ví dụ đã cấu hình sẵn:
+
+```sh
+pio run -e esp32s3_qmi8658b -t upload
+```
+
+Sau đó mở **Start Viewer.cmd** và kết nối USB. Không cần nối INT1/INT2. [Chi tiết QMI8658B](docs/QMI8658B.md).
+
 **FC F411 + ICM42605 / thạch anh 8 MHz / SPI2 CS PC13:** dùng environment `tt_f411_icm42605`. Hướng dẫn riêng: [nạp FC và kết nối USB](docs/FC_F411.md). Profile này có clock riêng, không dùng clock 25 MHz của BlackPill.
 
 Ví dụ SPI: sửa pin cho đúng bo của bạn, dùng logic **3,3 V**, chung GND.
@@ -46,7 +54,7 @@ Ví dụ SPI: sửa pin cho đúng bo của bạn, dùng logic **3,3 V**, chung 
 | SDI / MOSI | GPIO11 | PA7 |
 | CS | GPIO10 | PA4 |
 
-I²C dùng SDA/SCL của bo, địa chỉ thường `0x68` hoặc `0x69`. MPU6050 không dùng SPI.
+MPU/ICM dùng I²C ở `0x68` hoặc `0x69`; QMI8658B dùng `0x6A` khi SA0 high, `0x6B` khi SA0 low. MPU6050 không dùng SPI.
 
 Để chạy ví dụ đồ thị ngay từ repo thư viện: sửa pin trong [ESP32-S3 SPI](examples/SerialPlotter/SerialPlotter.ino), [STM32 SPI](examples/STM32_SPI/STM32_SPI.ino) hoặc [MPU6050 I²C](examples/MPU6050_I2C/MPU6050_I2C.ino), rồi chạy:
 
@@ -71,7 +79,7 @@ void loop() {
 }
 ```
 
-Gọi `update()` thường xuyên, tránh `delay()` trong vòng đọc. Mặc định lấy mẫu/tính góc 1 kHz, phù hợp cả SPI/I²C. Muốn thử ICM qua SPI ở mức 4 kHz/2 kHz: truyền `ttimu::Config::inav9()` vào `begin()`.
+Gọi `update()` thường xuyên, tránh `delay()` trong vòng đọc. MPU/ICM mặc định lấy mẫu/tính góc 1 kHz; QMI8658B dùng khoảng **896,8 Hz** và profile `Config::qmi8658b()`. Muốn thử ICM qua SPI ở mức 4 kHz/2 kHz: truyền `ttimu::Config::inav9()` vào `begin()`.
 
 ## Xem đồ thị
 
@@ -85,7 +93,7 @@ Trên Windows nhấp đúp **Start Viewer.cmd**, dùng trang tự mở bằng Ch
 
 **Góc về 0** lấy tư thế hiện tại làm mốc cho roll/pitch/yaw. **Hiệu chuẩn lại**: giữ bo đứng yên khoảng 2 giây, hiệu chuẩn gyro xong sẽ đặt cả ba góc về 0. Cần firmware v0.1.4 trở lên; mốc chỉ giữ đến khi reset/hiệu chuẩn lại. Mặc định **Góc chuẩn** hiển thị yaw `[0,360)`, roll `±180°`; chọn **Liên tục** khi muốn xem số vòng quay.
 
-Các cấu hình PlatformIO STM32 kèm repo bật USB CDC cho BlackPill; nếu dùng USB–UART ngoài, chọn Serial và pin phù hợp bo.
+Các ví dụ bật USB CDC; với ESP32-S3 hãy dùng cổng USB native của MCU. Nếu dùng USB–UART ngoài, chỉnh lựa chọn Serial/CDC của dự án cho đúng cổng.
 
 ![Trang theo dõi IMU — dữ liệu mô phỏng](docs/monitor.png)
 

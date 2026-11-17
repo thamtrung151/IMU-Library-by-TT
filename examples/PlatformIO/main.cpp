@@ -1,5 +1,7 @@
 #if defined(TTIMU_F411_FC_EXAMPLE)
 #include "../F411_FC/F411_FC.ino"
+#elif defined(TTIMU_QMI8658B_EXAMPLE)
+#include "../QMI8658B_I2C/QMI8658B_I2C.ino"
 #elif defined(TTIMU_I2C_EXAMPLE)
 #include "../MPU6050_I2C/MPU6050_I2C.ino"
 #elif defined(ARDUINO_ARCH_STM32)

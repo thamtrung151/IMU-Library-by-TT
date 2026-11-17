@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.1.5 — 2026-11-18
+
+- Add original QMI8658B I2C/4-wire-SPI register driver: reset/readback, I2C AHB
+  clock-gating handshake, SyncSample locked bursts and signed temperature.
+- Use native gyro 16 LSB/dps and nominal ODR 896.8/448.4 Hz for QMI rate classes
+  1000/500. Cache scale/periods, validate effective Nyquist and expose nominal
+  sample/fusion rate getters. Preserve existing sensor IDs and INAV core.
+- Add ESP32-S3 example/environment for the user's GPIO8 SDA/GPIO9 SCL and
+  SA0-high address 0x6A; no IRQ wiring. Keep CSV/zero/calibration interface.
+- Add register-model, scale, timing, filter and fault regressions plus CI coverage.
+  QMI hardware noise/drift, USB operation and wiring remain physically untested.
+- Fix a demonstrated tiny atan2 approximation residual at zero before yaw wrap,
+  so a zero pose reports 0 instead of 359.99997 degrees.
+
 ## 0.1.4 — 2026-11-08
 
 - Add firmware `zeroAttitude()` and the monitor's `ZERO_ALL` command. The viewer's

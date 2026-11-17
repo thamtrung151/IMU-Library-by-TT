@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // INAV-derived processing: see THIRD_PARTY_NOTICES.md and docs/PORTING.md.
 #include "IMULibrary.h"
+#include "ttimu/detail/Qmi8658B.h"
 #include <algorithm>
 #include <cmath>
 #include <cstring>
@@ -27,6 +28,12 @@ bool validConfig(const Config& c, Sensor s, bool spi) {
         !std::isfinite(c.gyroMovementThreshold) || c.gyroMovementThreshold<=0 ||
         c.maxGapUs<2000 || c.maxGapUs>100000 || !validAxes(c.axes) ||
         (c.eulerRollSign!=1 && c.eulerRollSign!=-1) || (c.gyroKalman && c.kalmanQ==0)) return false;
+    if(s==Sensor::QMI8658B){
+        const float sample=c.sampleRateHz*0.8968f,fusion=c.fusionRateHz*0.8968f;
+        if((c.sampleRateHz!=500&&c.sampleRateHz!=1000)||fusion<100 ||
+           c.gyroAntiAliasHz>=sample*.5f||c.gyroLowpassHz>=fusion*.5f||c.accelLowpassHz>=fusion*.5f)return false;
+        return true;
+    }
     if (c.gyroAntiAliasHz>=c.sampleRateHz/2 || c.gyroLowpassHz>=c.fusionRateHz/2 || c.accelLowpassHz>=c.fusionRateHz/2) return false;
     if (!spi && c.sampleRateHz>1000) return false;
     if (s==Sensor::MPU6050 || s==Sensor::MPU6500) return c.sampleRateHz==500 || c.sampleRateHz==1000;
@@ -35,12 +42,18 @@ bool validConfig(const Config& c, Sensor s, bool spi) {
 }
 
 Config Config::inav9() { Config c; c.sampleRateHz=4000; c.fusionRateHz=2000; return c; }
+Config Config::qmi8658b() { Config c;c.gyroAntiAliasHz=180;return c; }
 
 bool IMU::initialize(Sensor s,const Config& c) {
     if (s==Sensor::Auto || !validConfig(c,s,bus_ ? bus_->isSPI() : true)) {
         state_=State::Error; error_=Error::InvalidConfig; data_.ready=false; return false;
     }
     sensor_=s; config_=c; calibration_=Calibration(); calibration_.sensor=s;
+    sampleRateHz_=s==Sensor::QMI8658B?c.sampleRateHz*0.8968f:static_cast<float>(c.sampleRateHz);
+    fusionRateHz_=s==Sensor::QMI8658B?c.fusionRateHz*0.8968f:static_cast<float>(c.fusionRateHz);
+    samplePeriodUs_=static_cast<uint32_t>(1000000.0f/sampleRateHz_);
+    fusionPeriodUs_=static_cast<uint32_t>(1000000.0f/fusionRateHz_);
+    gyroScale_=s==Sensor::QMI8658B?1.0f/16.0f:1.0f/16.4f;
     data_=Data(); diagnostics_=Diagnostics(); core_.reset();
     referenceInverse_={1,0,0,0};referenceActive_=zeroAfterCalibration_=false;
     elapsedUs_=lastFusionUs_=calibrationStartUs_=0;
@@ -55,9 +68,9 @@ void IMU::resetFilters() {
     std::memset(gyroLpf_,0,sizeof(gyroLpf_));
     std::memset(accelLpf_,0,sizeof(accelLpf_));
     for(unsigned a=0;a<3;++a) {
-        if(config_.gyroAntiAliasHz) pt1FilterInit(&antiAlias_[a],config_.gyroAntiAliasHz,1.0f/config_.sampleRateHz);
-        if(config_.gyroLowpassHz) pt1FilterInit(&gyroLpf_[a],config_.gyroLowpassHz,1.0f/config_.fusionRateHz);
-        if(config_.accelLowpassHz) biquadFilterInit(&accelLpf_[a],config_.accelLowpassHz,1000000u/config_.fusionRateHz,1.0f/sqrtf(2.0f),FILTER_LPF);
+        if(config_.gyroAntiAliasHz) pt1FilterInit(&antiAlias_[a],config_.gyroAntiAliasHz,1.0f/sampleRateHz_);
+        if(config_.gyroLowpassHz) pt1FilterInit(&gyroLpf_[a],config_.gyroLowpassHz,1.0f/fusionRateHz_);
+        if(config_.accelLowpassHz) biquadFilterInit(&accelLpf_[a],config_.accelLowpassHz,fusionPeriodUs_,1.0f/sqrtf(2.0f),FILTER_LPF);
         gyroKalmanInitAxis(&kalman_[a],config_.kalmanQ);
         lastGyro_[a]=0;
     }
@@ -67,14 +80,24 @@ bool IMU::beginRaw(Sensor s,const Config& c) { bus_=nullptr; return initialize(s
 
 bool IMU::begin(RegisterBus& bus,Sensor expected,const Config& c) {
     bus_=&bus; config_=c; error_=Error::None; state_=State::Stopped; data_.ready=false;
-    uint8_t id=0;
-    if(!bus.read(0x75,&id,1)) {error_=Error::Bus;state_=State::Error;return false;}
     Sensor detected=Sensor::Auto;
-    if(id==0x42) detected=Sensor::ICM42605;
-    else if(id==0x47) detected=Sensor::ICM42688;
-    else if(id==0x70) detected=Sensor::MPU6500;
-    else if(id==0x68 || id==0x69) detected=Sensor::MPU6050;
-    if(detected==Sensor::Auto) {error_=Error::NotFound;state_=State::Error;return false;}
+    uint8_t id=0;bool anyRead=false;
+    // An explicit QMI request avoids probing its undefined legacy register 0x75.
+    if(expected==Sensor::QMI8658B){anyRead=bus.read(0x00,&id,1);if(anyRead&&id==0x05)detected=Sensor::QMI8658B;}
+    if(detected==Sensor::Auto){
+        const bool read=bus.read(0x75,&id,1);anyRead=anyRead||read;
+        if(read){
+            if(id==0x42)detected=Sensor::ICM42605;
+            else if(id==0x47)detected=Sensor::ICM42688;
+            else if(id==0x70)detected=Sensor::MPU6500;
+            else if(id==0x68||id==0x69)detected=Sensor::MPU6050;
+        }
+    }
+    if(detected==Sensor::Auto&&expected!=Sensor::QMI8658B){
+        const bool read=bus.read(0x00,&id,1);anyRead=anyRead||read;
+        if(read&&id==0x05)detected=Sensor::QMI8658B;
+    }
+    if(detected==Sensor::Auto) {error_=anyRead?Error::NotFound:Error::Bus;state_=State::Error;return false;}
     if(expected!=Sensor::Auto && expected!=detected) {error_=Error::WrongSensor;state_=State::Error;return false;}
     if(detected==Sensor::MPU6050 && bus.isSPI()) {error_=Error::InvalidConfig;state_=State::Error;return false;}
     if(!initialize(detected,c)) return false;
@@ -84,6 +107,7 @@ bool IMU::begin(RegisterBus& bus,Sensor expected,const Config& c) {
 }
 
 bool IMU::configureDevice(Sensor) {
+    if(sensor_==Sensor::QMI8658B)return qmi8658bConfigure(*bus_,config_.sampleRateHz==500?4:3);
     auto write=[this](uint8_t r,uint8_t v,uint32_t delay=0) {bool ok=bus_->write(r,v);if(delay)bus_->delayMs(delay);return ok;};
     uint8_t value=0;
     if(sensor_==Sensor::ICM42605 || sensor_==Sensor::ICM42688) {
@@ -114,6 +138,11 @@ bool IMU::configureDevice(Sensor) {
 }
 
 bool IMU::readDevice(RawSample& sample) {
+    if(sensor_==Sensor::QMI8658B){
+        const QmiReadResult result=qmi8658bRead(*bus_,sample);
+        if(result==QmiReadResult::BusError){error_=Error::Bus;++diagnostics_.readErrors;data_.ready=false;}
+        return result==QmiReadResult::Sample;
+    }
     const bool icm=sensor_==Sensor::ICM42605 || sensor_==Sensor::ICM42688;
     uint8_t bytes[14],status=0;
     if(config_.checkDataReady) {
@@ -140,7 +169,7 @@ bool IMU::readDevice(RawSample& sample) {
 bool IMU::update() {
     if(!bus_ || state_==State::Stopped || state_==State::Error) return false;
     const uint32_t now=bus_->micros32();
-    const uint32_t period=1000000u/config_.sampleRateHz;
+    const uint32_t period=samplePeriodUs_;
     if(static_cast<uint32_t>(now-lastPoll_)<period) return false;
     RawSample raw; raw.timestampUs=now;
     if(!readDevice(raw)) {
@@ -184,7 +213,7 @@ bool IMU::calibrateGyro(const RawSample& sample,uint64_t now) {
 bool IMU::feed(const RawSample& raw) {
     if(state_==State::Stopped || state_==State::Error)return false;
     if(!std::isfinite(raw.temperatureC)) {error_=Error::InvalidSample;data_.ready=false;++diagnostics_.rejectedSamples;return false;}
-    uint32_t delta=1000000u/config_.sampleRateHz;
+    uint32_t delta=samplePeriodUs_;
     if(haveTimestamp_) {
         delta=raw.timestampUs-lastRawTimestamp_;
         if(!delta || delta>0x7FFFFFFFu) {error_=Error::InvalidSample;data_.ready=false;++diagnostics_.rejectedSamples;return false;}
@@ -192,7 +221,7 @@ bool IMU::feed(const RawSample& raw) {
     } else {haveTimestamp_=true;calibrationStartUs_=0;}
     lastRawTimestamp_=raw.timestampUs; ++diagnostics_.rawSamples;
     error_=Error::None;
-    const uint32_t samplePeriod=1000000u/config_.sampleRateHz;
+    const uint32_t samplePeriod=samplePeriodUs_;
     if(delta>samplePeriod+samplePeriod/2) diagnostics_.lateSamples+=delta/samplePeriod-1;
     if(delta>config_.maxGapUs) {
         ++diagnostics_.timingGaps; data_.ready=false; error_=Error::TimingGap;
@@ -211,7 +240,7 @@ bool IMU::feed(const RawSample& raw) {
     }
     float sensorGyro[3],sensorAcc[3];
     for(unsigned a=0;a<3;++a) {
-        sensorGyro[a]=gyroCalibrated_?(raw.gyro[a]-calibration_.gyroBiasCounts[a])*(1.0f/16.4f):0;
+        sensorGyro[a]=gyroCalibrated_?(raw.gyro[a]-calibration_.gyroBiasCounts[a])*gyroScale_:0;
         sensorAcc[a]=(raw.accel[a]/2048.0f-calibration_.accelOffsetG[a])*calibration_.accelScale[a];
     }
     fpVector3_t gyro,acc;
@@ -222,9 +251,9 @@ bool IMU::feed(const RawSample& raw) {
         gyro.v[a]=lastGyro_[a];
         acc.v[a]=(axis<0?-sensorAcc[index]:sensorAcc[index]);
     }
-    const uint32_t fusionPeriod=1000000u/config_.fusionRateHz;
+    const uint32_t fusionPeriod=fusionPeriodUs_;
     if(haveFusion_ && elapsedUs_-lastFusionUs_<fusionPeriod) return false;
-    const float dt=haveFusion_?static_cast<float>(elapsedUs_-lastFusionUs_)*1e-6f:1.0f/config_.fusionRateHz;
+    const float dt=haveFusion_?static_cast<float>(elapsedUs_-lastFusionUs_)*1e-6f:1.0f/fusionRateHz_;
     lastFusionUs_=elapsedUs_;haveFusion_=true;
     for(unsigned a=0;a<3;++a) {
         float g=config_.gyroLowpassHz?pt1FilterApply(&gyroLpf_[a],gyro.v[a]):gyro.v[a];
@@ -277,8 +306,11 @@ void IMU::publishAttitude() {
     data_.roll=config_.eulerRollSign*atan2_approx(r21,r22)*(180/M_PIf);
     data_.pitch=(0.5f*M_PIf-acos_approx(constrainf(-r20,-1,1)))*(180/M_PIf);
     data_.yaw=-atan2_approx(r10,r00)*(180/M_PIf);
+    // atan2_approx(0,1) has a tiny residual; remove it before adding 360,
+    // where float rounding can turn a freshly zeroed pose into 359.99997.
+    if(std::fabs(data_.yaw)<1e-4f)data_.yaw=0;
     if(data_.yaw<0)data_.yaw+=360;
-    if(data_.yaw>=360.0f-1e-5f || std::fabs(data_.yaw)<1e-5f)data_.yaw=0;
+    if(data_.yaw>=360)data_.yaw=0;
 }
 
 bool IMU::zeroAttitude() {
@@ -309,7 +341,7 @@ bool IMU::setCalibration(const Calibration& c) {
     error_=Error::None;return true;
 }
 const char* IMU::sensorName(Sensor s) {
-    switch(s){case Sensor::MPU6050:return "MPU6050";case Sensor::MPU6500:return "MPU6500";case Sensor::ICM42605:return "ICM42605";case Sensor::ICM42688:return "ICM42688-P";default:return "Auto/unknown";}
+    switch(s){case Sensor::MPU6050:return "MPU6050";case Sensor::MPU6500:return "MPU6500";case Sensor::ICM42605:return "ICM42605";case Sensor::ICM42688:return "ICM42688-P";case Sensor::QMI8658B:return "QMI8658B";default:return "Auto/unknown";}
 }
 const char* IMU::errorName(Error e) {
     switch(e){case Error::None:return "OK";case Error::NotStarted:return "Not started";case Error::Bus:return "Bus read/write failed";case Error::NotFound:return "IMU not detected";case Error::WrongSensor:return "Unexpected IMU model";case Error::InvalidConfig:return "Unsupported rate/filter/axis configuration";case Error::InvalidSample:return "Invalid timestamp or sample";case Error::TimingGap:return "Sampling gap; angle during gap unavailable";case Error::CalibrationMismatch:return "Invalid calibration or wrong sensor";default:return "Unknown error";}

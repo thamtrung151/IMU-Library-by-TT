@@ -15,6 +15,12 @@ This is a **six-axis portable robot profile**, not full firmware equivalence.
 - Gyro startup mean/stddev window and retry logic; calibration before alignment.
 - Gyro scale `1/16.4`, acc scale 2048 LSB/g.
 
+These are the MPU/ICM profiles. The QMI8658B driver added in v0.1.5 is original
+datasheet-based code, not an INAV-extracted driver. It uses native gyro scale
+`1/16`, acc 2048 LSB/g, locked little-endian reads and nominal 896.8/448.4 Hz.
+Its rate mapping/filter timing is explicit; the INAV attitude core is shared
+without modification. See `docs/QMI8658B.md` and `THIRD_PARTY_NOTICES.md`.
+
 The source generator and vendored originals make the derivation reviewable.
 The test reference compiles the **full upstream Mahony function**, with external
 heading inputs absent, separately from the reduced production function. It shares

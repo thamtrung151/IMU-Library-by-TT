@@ -35,6 +35,13 @@ The extracted steady-state INAV update remains unchanged.
 Safety guards, transport changes and profile differences are in `docs/PORTING.md`.
 These modifications are not an official INAV release and are not endorsed by INAV.
 
+On **2026-11-18**, `src/ttimu/detail/Qmi8658B.cpp` was written as original
+project code from QST's **QMI8658B Datasheet Rev D (QST-PD-B002-22)** register
+specifications. No external QMI driver source is incorporated. Reference:
+https://datasheet.lcsc.com/datasheet/pdf/95c5a9b4681f107b4a4ecae3691b9582.pdf?productCode=C5380158
+See `docs/QMI8658B.md` for configuration and verification limits. The datasheet
+is linked rather than redistributed; the new code uses this project's GPL license.
+
 Arduino cores, ESP-IDF, STM32 HAL and toolchains are **not bundled** in this
 repository; they are separately installed dependencies with their own licenses.
 When distributing a combined firmware, review its corresponding-source and
